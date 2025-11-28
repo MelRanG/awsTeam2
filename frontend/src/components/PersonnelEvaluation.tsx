@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Upload, CheckCircle, AlertTriangle, XCircle, FileText } from 'lucide-react';
+import { Upload, CheckCircle, AlertTriangle, XCircle, FileText, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { api } from '../config/api';
 
 interface Evaluation {
   id: string;
@@ -29,175 +30,40 @@ interface Evaluation {
 }
 
 export function PersonnelEvaluation() {
+  console.log('PersonnelEvaluation 컴포넌트 렌더링됨');
+  
   const [selectedTab, setSelectedTab] = useState('pending');
+  const [userId, setUserId] = useState('U_003');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [quantitativeData, setQuantitativeData] = useState<any>(null);
+  const [qualitativeData, setQualitativeData] = useState<any>(null);
+  
+  console.log('현재 상태:', { userId, loading, error, hasQuantitativeData: !!quantitativeData });
 
-  const evaluations: Evaluation[] = [
-    {
-      id: '1',
-      name: '홍길동',
-      type: 'career',
-      status: 'pending',
-      overallScore: 85,
-      submittedAt: '2024.11.10',
-      evaluations: [
-        {
-          category: '기술 역량',
-          score: 90,
-          maxScore: 100,
-          feedback: '요구 기술 스택 대부분 보유. React, Node.js 숙련도 우수',
-        },
-        {
-          category: '프로젝트 경험',
-          score: 85,
-          maxScore: 100,
-          feedback: '유사 프로젝트 3건 수행. 금융 도메인 경험 풍부',
-        },
-        {
-          category: '이력 신뢰도',
-          score: 80,
-          maxScore: 100,
-          feedback: '대부분의 경력 검증 완료. 일부 프로젝트 추가 확인 필요',
-        },
-        {
-          category: '문화 적합성',
-          score: 85,
-          maxScore: 100,
-          feedback: '협업 능력 우수. 이전 직장 평판 양호',
-        },
-      ],
-      projects: [
-        {
-          name: 'A은행 인터넷뱅킹 개편',
-          role: 'Senior Developer',
-          period: '2022.01 - 2023.12',
-          verified: true,
-        },
-        {
-          name: 'B증권 HTS 개발',
-          role: 'Tech Lead',
-          period: '2020.06 - 2021.12',
-          verified: true,
-        },
-        {
-          name: 'C카드 결제 시스템',
-          role: 'Backend Developer',
-          period: '2018.03 - 2020.05',
-          verified: false,
-        },
-      ],
-      recommendations: [
-        '금융 프로젝트에 즉시 투입 가능',
-        'Tech Lead 역할 수행 경험으로 팀 리더십 기대',
-        '일부 프로젝트 이력 추가 검증 후 최종 승인 권장',
-      ],
-    },
-    {
-      id: '2',
-      name: '김미영',
-      type: 'freelancer',
-      status: 'pending',
-      overallScore: 78,
-      submittedAt: '2024.11.09',
-      evaluations: [
-        {
-          category: '기술 역량',
-          score: 85,
-          maxScore: 100,
-          feedback: 'React Native 전문가. 모바일 앱 개발 경험 풍부',
-        },
-        {
-          category: '프로젝트 경험',
-          score: 75,
-          maxScore: 100,
-          feedback: '프리랜서로 다양한 프로젝트 수행. 장기 프로젝트 경험 부족',
-        },
-        {
-          category: '이력 신뢰도',
-          score: 70,
-          maxScore: 100,
-          feedback: '일부 프로젝트 검증 어려움. 레퍼런스 추가 확보 필요',
-        },
-        {
-          category: '커뮤니케이션',
-          score: 85,
-          maxScore: 100,
-          feedback: '원활한 소통 능력. 리모트 작업 경험 우수',
-        },
-      ],
-      projects: [
-        {
-          name: '헬스케어 앱 개발',
-          role: 'Frontend Developer',
-          period: '2024.06 - 2024.09',
-          verified: true,
-        },
-        {
-          name: '배달 플랫폼 리뉴얼',
-          role: 'React Native Developer',
-          period: '2024.01 - 2024.05',
-          verified: false,
-        },
-      ],
-      recommendations: [
-        '단기 프로젝트 투입 적합',
-        '장기 프로젝트는 초기 성과 확인 후 결정',
-        '레퍼런스 체크 추가 필요',
-      ],
-    },
-    {
-      id: '3',
-      name: '박준호',
-      type: 'career',
-      status: 'approved',
-      overallScore: 92,
-      submittedAt: '2024.11.05',
-      evaluations: [
-        {
-          category: '기술 역량',
-          score: 95,
-          maxScore: 100,
-          feedback: '풀스택 개발 능력 우수. 최신 기술 트렌드 파악',
-        },
-        {
-          category: '프로젝트 경험',
-          score: 90,
-          maxScore: 100,
-          feedback: '대규모 프로젝트 다수 경험. 리더십 검증됨',
-        },
-        {
-          category: '이력 신뢰도',
-          score: 95,
-          maxScore: 100,
-          feedback: '모든 경력 검증 완료. 레퍼런스 매우 긍정적',
-        },
-        {
-          category: '문화 적합성',
-          score: 90,
-          maxScore: 100,
-          feedback: '팀워크 우수. 멘토링 능력 보유',
-        },
-      ],
-      projects: [
-        {
-          name: 'D커머스 플랫폼 구축',
-          role: 'Tech Lead',
-          period: '2021.01 - 2023.12',
-          verified: true,
-        },
-        {
-          name: 'E물류 시스템 개발',
-          role: 'Senior Developer',
-          period: '2019.03 - 2020.12',
-          verified: true,
-        },
-      ],
-      recommendations: [
-        '즉시 투입 승인',
-        '핵심 프로젝트 Tech Lead 역할 추천',
-        '신규 팀원 멘토링 가능',
-      ],
-    },
-  ];
+  const handleAnalyze = async () => {
+    console.log('handleAnalyze 호출됨! userId:', userId);
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('API 호출 시작...');
+      const [quantitative, qualitative] = await Promise.all([
+        api.quantitativeAnalysis({ user_id: userId }),
+        api.qualitativeAnalysis({ user_id: userId }),
+      ]);
+      console.log('API 호출 성공!', quantitative, qualitative);
+      setQuantitativeData(quantitative);
+      setQualitativeData(qualitative);
+    } catch (err) {
+      console.error('API 호출 실패:', err);
+      setError(err instanceof Error ? err.message : '분석 실패');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 하드코딩 데이터 제거 - 실제 데이터는 API에서 가져옴
+  const evaluations: Evaluation[] = [];
 
   const filteredEvaluations = evaluations.filter((evaluation) => {
     if (selectedTab === 'pending') return evaluation.status === 'pending';
@@ -237,31 +103,88 @@ export function PersonnelEvaluation() {
         </motion.div>
       </motion.div>
 
-      {/* Upload Section */}
+      {/* API Analysis Section */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1 }}
       >
         <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
           <CardHeader>
-            <CardTitle>AI 기반 이력 분석</CardTitle>
+            <CardTitle>실시간 인력 분석</CardTitle>
           </CardHeader>
           <CardContent>
-            <motion.div
-              whileHover={{ scale: 1.01, borderColor: 'rgb(59, 130, 246)' }}
-              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center transition-colors cursor-pointer relative overflow-hidden"
-            >
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
+            <div className="flex gap-4 mb-6">
+              <input
+                type="text"
+                value={userId}
+                onChange={(e) => {
+                  console.log('Input 변경:', e.target.value);
+                  setUserId(e.target.value);
+                }}
+                placeholder="직원 ID (예: U_003)"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button 
+                onClick={(e) => {
+                  console.log('버튼 클릭됨!', e);
+                  handleAnalyze();
+                }}
+                disabled={loading}
+                className="gap-2 px-4 py-2 rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 flex items-center"
               >
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              </motion.div>
-              <p className="text-gray-900 mb-2">이력서를 드래그하거나 클릭하여 업로드</p>
-              <p className="text-sm text-gray-600">PDF, DOC, DOCX 파일 지원</p>
-            </motion.div>
+                <Search className="w-4 h-4" />
+                {loading ? '분석 중...' : '분석하기'}
+              </button>
+            </div>
+
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 mb-4">
+                {error}
+              </div>
+            )}
+
+            {quantitativeData && (
+              <div className="space-y-4">
+                <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-3">정량적 분석 결과</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-blue-600">{quantitativeData.overall_score.toFixed(1)}</p>
+                      <p className="text-sm text-gray-600">종합 점수</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-blue-600">{quantitativeData.experience_metrics.years_of_experience}</p>
+                      <p className="text-sm text-gray-600">경력 (년)</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-blue-600">{quantitativeData.experience_metrics.project_count}</p>
+                      <p className="text-sm text-gray-600">프로젝트 수</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-blue-600">{quantitativeData.experience_metrics.skill_diversity}</p>
+                      <p className="text-sm text-gray-600">기술 다양성</p>
+                    </div>
+                  </div>
+                </div>
+
+                {qualitativeData && qualitativeData.suspicious_flags.length > 0 && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                    <h3 className="text-lg font-semibold text-yellow-900 mb-2">주의사항</h3>
+                    <ul className="space-y-1">
+                      {qualitativeData.suspicious_flags.map((flag: any, idx: number) => (
+                        <li key={idx} className="text-sm text-yellow-800 flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                          <span>{flag.description}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -315,7 +238,7 @@ export function PersonnelEvaluation() {
                       whileHover={{ scale: 1.01 }}
                     >
                       <Card className="border-2 bg-white/50 backdrop-blur-sm overflow-hidden">
-                        <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-full blur-2xl" />
+                        <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
                         <CardHeader>
                           <div className="flex items-start justify-between">
                             <div>

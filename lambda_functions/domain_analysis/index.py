@@ -57,7 +57,12 @@ def handler(event, context):
         
         return {
             'statusCode': 200,
-            'headers': {'Content-Type': 'application/json'},
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
             'body': json.dumps(result, default=decimal_default)
         }
         
@@ -65,7 +70,12 @@ def handler(event, context):
         logger.error(f"도메인 분석 중 오류 발생: {str(e)}", exc_info=True)
         return {
             'statusCode': 500,
-            'headers': {'Content-Type': 'application/json'},
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
             'body': json.dumps({'error': str(e)})
         }
 
@@ -280,7 +290,7 @@ def analyze_domain_entry(
     employees: List[Dict[str, Any]]
 ) -> Dict[str, Any]:
     """
-    도메인 진입 분석
+    도메인 진입 분석 (근거 기반)
     
     Requirements: 4.3 - 기술 갭 및 전환 가능성 분석
     
@@ -297,14 +307,24 @@ def analyze_domain_entry(
         
         # 현재 보유 기술 분석
         current_skills = set()
+        skill_proficiency = {}  # 기술별 숙련도 추적
+        
         for employee in employees:
             skills = employee.get('skills', [])
             for skill in skills:
                 if isinstance(skill, dict):
-                    current_skills.add(skill.get('name', ''))
+                    skill_name = skill.get('name', '')
+                    skill_level = skill.get('level', 'Intermediate')
+                    current_skills.add(skill_name)
+                    
+                    # 최고 숙련도 추적
+                    if skill_name not in skill_proficiency or \
+                       get_level_score(skill_level) > get_level_score(skill_proficiency[skill_name]):
+                        skill_proficiency[skill_name] = skill_level
         
         # 기술 갭 계산
         skill_gap = list(set(required_skills) - current_skills)
+        matched_skills = list(current_skills.intersection(set(required_skills)))
         
         # 전환 가능한 직원 찾기
         transferable_employees = find_transferable_employees(
@@ -319,13 +339,26 @@ def analyze_domain_entry(
             transferable_employees
         )
         
+        # Claude를 사용한 상세 분석 및 근거 생성
+        reasoning = generate_domain_reasoning(
+            domain=domain,
+            feasibility_score=feasibility_score,
+            matched_skills=matched_skills,
+            skill_gap=skill_gap,
+            skill_proficiency=skill_proficiency,
+            transferable_count=len(transferable_employees)
+        )
+        
         return {
             'domain_name': domain,
             'feasibility_score': feasibility_score,
             'required_skills': required_skills,
+            'matched_skills': matched_skills,
             'skill_gap': skill_gap,
+            'skill_proficiency': {skill: skill_proficiency.get(skill, 'N/A') for skill in matched_skills},
             'transferable_employees': len(transferable_employees),
-            'recommended_team': [emp.get('user_id') for emp in transferable_employees[:5]]
+            'recommended_team': [emp.get('user_id') for emp in transferable_employees[:5]],
+            'reasoning': reasoning
         }
         
     except Exception as e:
@@ -334,10 +367,116 @@ def analyze_domain_entry(
             'domain_name': domain,
             'feasibility_score': 0,
             'required_skills': [],
+            'matched_skills': [],
             'skill_gap': [],
+            'skill_proficiency': {},
             'transferable_employees': 0,
-            'recommended_team': []
+            'recommended_team': [],
+            'reasoning': '분석 실패'
         }
+
+
+def get_level_score(level: str) -> int:
+    """기술 레벨을 점수로 변환"""
+    level_scores = {
+        'Beginner': 1,
+        'Intermediate': 2,
+        'Advanced': 3,
+        'Expert': 4
+    }
+    return level_scores.get(level, 2)
+
+
+def generate_domain_reasoning(
+    domain: str,
+    feasibility_score: float,
+    matched_skills: List[str],
+    skill_gap: List[str],
+    skill_proficiency: Dict[str, str],
+    transferable_count: int
+) -> str:
+    """
+    도메인 진입 근거 생성
+    
+    Args:
+        domain: 도메인 이름
+        feasibility_score: 실현 가능성 점수
+        matched_skills: 보유 기술
+        skill_gap: 부족한 기술
+        skill_proficiency: 기술별 숙련도
+        transferable_count: 전환 가능 인력 수
+        
+    Returns:
+        str: 도메인 진입 근거
+    """
+    try:
+        # 숙련도 정보 포맷팅
+        proficiency_info = "\n".join([
+            f"  - {skill}: {level}"
+            for skill, level in skill_proficiency.items()
+        ]) if skill_proficiency else "없음"
+        
+        prompt = f"""다음 신규 도메인 진입 가능성을 분석하고 근거를 제시해주세요:
+
+## 도메인 정보
+- 도메인: {domain}
+- 실현 가능성 점수: {feasibility_score:.1f}/100
+
+## 현재 역량
+- 보유 기술: {', '.join(matched_skills) if matched_skills else '없음'}
+- 기술별 숙련도:
+{proficiency_info}
+- 전환 가능 인력: {transferable_count}명
+
+## 기술 갭
+- 부족한 기술: {', '.join(skill_gap) if skill_gap else '없음'}
+
+위 정보를 바탕으로 다음 형식으로 분석 근거를 작성해주세요:
+1. 현재 강점 (보유 기술 및 인력)
+2. 진입 장벽 (부족한 기술 및 리스크)
+3. 추천 전략 (채용, 교육, 파트너십 등)
+
+총 3-4문장으로 간결하게 작성해주세요."""
+
+        response = bedrock_runtime.invoke_model(
+            modelId='anthropic.claude-v2',
+            body=json.dumps({
+                'prompt': f"\n\nHuman: {prompt}\n\nAssistant:",
+                'max_tokens_to_sample': 300,
+                'temperature': 0.7
+            })
+        )
+        
+        response_body = json.loads(response['body'].read())
+        reasoning = response_body.get('completion', '').strip()
+        
+        return reasoning
+        
+    except Exception as e:
+        logger.error(f"도메인 근거 생성 실패: {str(e)}")
+        
+        # 폴백: 구조화된 근거 생성
+        if feasibility_score >= 70:
+            level = "높음"
+            recommendation = "즉시 진입 가능"
+        elif feasibility_score >= 40:
+            level = "중간"
+            recommendation = "단기 교육 후 진입 가능"
+        else:
+            level = "낮음"
+            recommendation = "장기 준비 필요"
+        
+        reasoning = f"[실현가능성: {level}] "
+        
+        if matched_skills:
+            reasoning += f"{', '.join(matched_skills[:3])} 등 {len(matched_skills)}개 기술을 보유하고 있으며, {transferable_count}명의 전환 가능 인력이 있습니다. "
+        
+        if skill_gap:
+            reasoning += f"다만 {', '.join(skill_gap[:3])} 등 {len(skill_gap)}개 기술이 부족합니다. "
+        
+        reasoning += f"[전략] {recommendation}."
+        
+        return reasoning
 
 
 def get_required_skills_for_domain(domain: str) -> List[str]:
@@ -406,7 +545,14 @@ def calculate_feasibility_score(
     transferable_employees: List[Dict[str, Any]]
 ) -> float:
     """
-    실현 가능성 점수 계산
+    실현 가능성 점수 계산 (근거 기반)
+    
+    공식: Score(D) = (Trend_growth × W_market) - (Gap_skill × W_risk)
+    
+    실제 구현:
+    - 기술 보유율 (Skill Coverage): 현재 보유 기술 / 필요 기술
+    - 인력 가용성 (Employee Availability): 전환 가능 인력 / 최소 필요 인력
+    - 기술 갭 페널티 (Skill Gap Penalty): 부족한 핵심 기술에 대한 감점
     
     Args:
         required_skills: 필요 기술 목록
@@ -416,14 +562,39 @@ def calculate_feasibility_score(
     Returns:
         float: 실현 가능성 점수 (0-100)
     """
-    # 기술 보유율
-    skill_coverage = len(current_skills.intersection(set(required_skills))) / len(required_skills)
+    # 1. 기술 보유율 계산
+    matched_skills = current_skills.intersection(set(required_skills))
+    skill_coverage = len(matched_skills) / len(required_skills) if required_skills else 0
     
-    # 인력 가용성
-    employee_availability = min(1.0, len(transferable_employees) / 5.0)  # 최소 5명 필요
+    # 2. 인력 가용성 계산
+    min_team_size = 5  # 최소 팀 크기
+    employee_availability = min(1.0, len(transferable_employees) / min_team_size)
     
-    # 종합 점수
-    feasibility = (skill_coverage * 0.6 + employee_availability * 0.4) * 100
+    # 3. 기술 갭 분석
+    skill_gap = set(required_skills) - current_skills
+    gap_penalty = len(skill_gap) / len(required_skills) if required_skills else 0
+    
+    # 4. 핵심 기술 가중치
+    # 특정 핵심 기술이 없으면 추가 페널티
+    core_skills = ['AWS', 'Python', 'Java', 'React', 'Database']
+    missing_core_skills = [skill for skill in core_skills if skill in skill_gap]
+    core_penalty = len(missing_core_skills) * 0.05  # 핵심 기술 하나당 5% 감점
+    
+    # 5. 시장 수요 가중치 (W_market)
+    # 실제로는 TechTrends 테이블에서 가져와야 하지만, 여기서는 기본값 사용
+    market_weight = 1.2  # 시장 수요가 높다고 가정
+    
+    # 6. 리스크 가중치 (W_risk)
+    risk_weight = 1.0
+    
+    # 7. 종합 점수 계산
+    # Score = (기술보유율 × 시장가중치 + 인력가용성) - (기술갭 × 리스크가중치 + 핵심기술페널티)
+    positive_score = (skill_coverage * market_weight * 0.5 + employee_availability * 0.3) * 100
+    negative_score = (gap_penalty * risk_weight * 0.2 + core_penalty) * 100
+    
+    feasibility = max(0, positive_score - negative_score)
+    
+    logger.info(f"실현가능성 계산: 기술보유율={skill_coverage:.2f}, 인력가용성={employee_availability:.2f}, 기술갭={gap_penalty:.2f}, 최종점수={feasibility:.2f}")
     
     return round(feasibility, 2)
 

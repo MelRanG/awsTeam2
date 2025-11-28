@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { TrendingUp, Users, Lightbulb, ArrowRight } from 'lucide-react';
+import { TrendingUp, Users, Lightbulb, ArrowRight, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
+import { api } from '../config/api';
 
 interface DomainInsight {
   id: string;
@@ -25,96 +26,30 @@ interface TeamSuggestion {
 
 export function DomainAnalysis() {
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
+  const [userId, setUserId] = useState('U_003');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [domainData, setDomainData] = useState<any>(null);
 
-  const domainInsights: DomainInsight[] = [
-    {
-      id: '1',
-      domain: 'AI/머신러닝',
-      confidence: 92,
-      potentialProjects: 8,
-      requiredSkills: ['Python', 'TensorFlow', 'PyTorch', 'NLP', 'Computer Vision'],
-      availableExperts: 12,
-      insights: [
-        '최근 3년간 AI 관련 프로젝트 경험자 12명 확보',
-        '대형 AI 프로젝트 2건 성공적 완료',
-        '시장 수요 급증 추세 (전년 대비 150%)',
-        '기존 인력의 40%가 AI 관련 기술 보유',
-      ],
-      marketDemand: 'high',
-    },
-    {
-      id: '2',
-      domain: '블록체인',
-      confidence: 78,
-      potentialProjects: 4,
-      requiredSkills: ['Solidity', 'Web3.js', 'Ethereum', 'Smart Contract', 'DeFi'],
-      availableExperts: 5,
-      insights: [
-        '블록체인 관련 프로젝트 경험자 5명',
-        '금융 도메인 전문가 다수 보유로 진입 용이',
-        'Web3 기술 트렌드 선점 기회',
-        '추가 교육으로 10명 이상 확보 가능',
-      ],
-      marketDemand: 'medium',
-    },
-    {
-      id: '3',
-      domain: 'IoT/스마트팩토리',
-      confidence: 85,
-      potentialProjects: 6,
-      requiredSkills: ['IoT', 'MQTT', 'Edge Computing', 'Time Series DB', 'Python'],
-      availableExperts: 8,
-      insights: [
-        '제조업 프로젝트 경험 풍부',
-        'IoT 플랫폼 구축 경험 3건',
-        '정부 지원 사업 확대로 시장 성장',
-        '기존 인프라팀 역량 활용 가능',
-      ],
-      marketDemand: 'high',
-    },
-    {
-      id: '4',
-      domain: '헬스테크',
-      confidence: 72,
-      potentialProjects: 5,
-      requiredSkills: ['FHIR', 'HL7', 'Medical Data', 'React Native', 'HIPAA Compliance'],
-      availableExperts: 4,
-      insights: [
-        '헬스케어 관련 프로젝트 2건 수행',
-        '데이터 보안 전문 인력 확보',
-        '고령화 사회 진입으로 시장 확대',
-        '의료 도메인 전문가 영입 필요',
-      ],
-      marketDemand: 'high',
-    },
-  ];
+  const handleDomainAnalysis = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await api.domainAnalysis({ 
+        employee_id: userId, 
+        analysis_type: 'skills' 
+      });
+      setDomainData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '도메인 분석 실패');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const teamSuggestions: TeamSuggestion[] = [
-    {
-      role: 'AI/ML Engineer',
-      requiredCount: 3,
-      suggestedPersonnel: ['최민수', '박지영', '김태현'],
-      skills: ['Python', 'TensorFlow', 'PyTorch'],
-    },
-    {
-      role: 'Backend Developer',
-      requiredCount: 2,
-      suggestedPersonnel: ['강동원', '이영희'],
-      skills: ['Python', 'FastAPI', 'PostgreSQL'],
-    },
-    {
-      role: 'Frontend Developer',
-      requiredCount: 2,
-      suggestedPersonnel: ['정수진', '김철수'],
-      skills: ['React', 'TypeScript', 'D3.js'],
-    },
-    {
-      role: 'DevOps Engineer',
-      requiredCount: 1,
-      suggestedPersonnel: ['박지민'],
-      skills: ['AWS', 'Docker', 'Kubernetes'],
-    },
-  ];
+  // 하드코딩 데이터 제거 - 실제 데이터는 API에서 가져옴
+  const domainInsights: DomainInsight[] = [];
+  const teamSuggestions: TeamSuggestion[] = [];
 
   const getMarketDemandColor = (demand: DomainInsight['marketDemand']) => {
     switch (demand) {
@@ -148,6 +83,81 @@ export function DomainAnalysis() {
         <p className="text-gray-600">인력 이력을 기반으로 신규 도메인 진출 가능성을 분석합니다</p>
       </motion.div>
 
+      {/* API Analysis Section */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.1 }}
+      >
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+          <CardHeader>
+            <CardTitle>실시간 도메인 분석</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4 mb-6">
+              <input
+                type="text"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                placeholder="직원 ID (예: U_003)"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <Button 
+                onClick={handleDomainAnalysis} 
+                disabled={loading}
+                className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              >
+                <Search className="w-4 h-4" />
+                {loading ? '분석 중...' : '분석하기'}
+              </Button>
+            </div>
+
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 mb-4">
+                {error}
+              </div>
+            )}
+
+            {domainData && (
+              <div className="space-y-4">
+                <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-3">현재 도메인</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {domainData.current_domains.map((domain: string, idx: number) => (
+                      <Badge key={idx} className="bg-gradient-to-r from-blue-600 to-indigo-600">
+                        {domain}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-gray-900">추천 도메인</h3>
+                  {domainData.identified_domains.map((domain: any, idx: number) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="text-lg font-semibold text-gray-900">{domain.domain_name}</h4>
+                        <Badge variant="secondary">
+                          적합도: {domain.feasibility_score.toFixed(1)}%
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600">{domain.reasoning}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* Domain Insights */}
       <div>
         <motion.div 
@@ -175,7 +185,7 @@ export function DomainAnalysis() {
               onClick={() => setSelectedDomain(domain.id)}
             >
               <Card className="cursor-pointer bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-2xl" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
@@ -279,7 +289,7 @@ export function DomainAnalysis() {
           transition={{ duration: 0.4 }}
         >
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-blue-600" />

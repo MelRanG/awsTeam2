@@ -248,3 +248,44 @@ variable "external_api_key" {
   sensitive   = true
   default     = ""
 }
+
+
+# Employees List Lambda
+resource "aws_lambda_function" "employees_list" {
+  filename      = "../../lambda_functions/employees_list.zip"
+  function_name = "EmployeesList"
+  role          = aws_iam_role.lambda_execution_team2.arn
+  handler       = "index.handler"
+  runtime       = "python3.11"
+  timeout       = 30
+  memory_size   = 256
+  
+  layers = [aws_lambda_layer_version.boto3_layer.arn]
+  
+  tags = {
+    Team        = "Team2"
+    EmployeeID  = "524956"
+    Project     = "HR-Resource-Optimization"
+    Environment = var.environment
+  }
+}
+
+# Projects List Lambda
+resource "aws_lambda_function" "projects_list" {
+  filename      = "../../lambda_functions/projects_list.zip"
+  function_name = "ProjectsList"
+  role          = aws_iam_role.lambda_execution_team2.arn
+  handler       = "index.handler"
+  runtime       = "python3.11"
+  timeout       = 30
+  memory_size   = 256
+  
+  layers = [aws_lambda_layer_version.boto3_layer.arn]
+  
+  tags = {
+    Team        = "Team2"
+    EmployeeID  = "524956"
+    Project     = "HR-Resource-Optimization"
+    Environment = var.environment
+  }
+}

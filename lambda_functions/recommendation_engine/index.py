@@ -165,9 +165,15 @@ def generate_recommendations(
 
 def find_employees_by_skills(required_skills: List[str]) -> List[Dict[str, Any]]:
     """
-    기술 스택으로 직원 검색
+    기술 스택으로 직원 검색 (가중치 기반)
     
     Requirements: 1.3 - 기술 매칭 알고리즘
+    
+    적합도 점수 공식: Score(P, E) = Σ(Smatch × Wlevel × Wrecency) + (Expdomain × Wdomain)
+    - Smatch: 요구 기술 일치 여부 (0 or 1)
+    - Wlevel: 기술 숙련도 가중치 (Beginner: 1.0 ~ Expert: 2.0)
+    - Wrecency: 최신성 가중치 (최근 6개월: 1.0, 3년 전: 0.3)
+    - Wdomain: 도메인 경험 가중치 (1.3)
     
     Args:
         required_skills: 요구 기술 목록
@@ -176,9 +182,12 @@ def find_employees_by_skills(required_skills: List[str]) -> List[Dict[str, Any]]
         list: 매칭된 직원 목록
     """
     try:
+        import math
+        from datetime import datetime
+        
         table = dynamodb.Table('Employees')
         
-        # 모든 직원 조회 (실제로는 GSI 사용)
+        # 모든 직원 조회
         response = table.scan()
         employees = response.get('Items', [])
         
@@ -187,22 +196,92 @@ def find_employees_by_skills(required_skills: List[str]) -> List[Dict[str, Any]]
             response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
             employees.extend(response.get('Items', []))
         
-        # 기술 매칭 점수 계산
+        # 기술 매칭 점수 계산 (가중치 적용)
         matches = []
+        current_year = datetime.now().year
+        
         for employee in employees:
-            employee_skills = [
-                skill.get('name', '') 
-                for skill in employee.get('skills', [])
-            ]
+            skills = employee.get('skills', [])
+            work_experience = employee.get('work_experience', [])
             
-            # 매칭된 기술 수 계산
-            matched_skills = [
-                skill for skill in required_skills 
-                if skill in employee_skills
-            ]
+            # 가중치 점수 계산
+            weighted_score = 0.0
+            matched_skills = []
+            skill_details = []
+            
+            for req_skill in required_skills:
+                # 직원이 해당 기술을 보유하는지 확인
+                for emp_skill in skills:
+                    if not isinstance(emp_skill, dict):
+                        continue
+                    
+                    skill_name = emp_skill.get('name', '')
+                    if skill_name.lower() == req_skill.lower():
+                        # 1. 기본 매칭 (Smatch = 1)
+                        s_match = 1.0
+                        
+                        # 2. 숙련도 가중치 (Wlevel)
+                        level = emp_skill.get('level', 'Intermediate')
+                        level_weights = {
+                            'Beginner': 1.0,
+                            'Intermediate': 1.5,
+                            'Advanced': 1.8,
+                            'Expert': 2.0
+                        }
+                        w_level = level_weights.get(level, 1.0)
+                        
+                        # 3. 최신성 가중치 (Wrecency)
+                        # 최근 프로젝트에서 사용했는지 확인
+                        w_recency = 0.5  # 기본값
+                        
+                        for project in work_experience:
+                            if not isinstance(project, dict):
+                                continue
+                            
+                            # 프로젝트 기간 파싱
+                            period = project.get('period', '')
+                            if period:
+                                try:
+                                    # "2024-01 ~ 2025-07" 형식 파싱
+                                    end_date = period.split('~')[-1].strip()
+                                    end_year = int(end_date.split('-')[0])
+                                    years_ago = current_year - end_year
+                                    
+                                    # 시간 감쇠: e^(-λt), λ = 0.3
+                                    w_recency = max(w_recency, math.exp(-0.3 * years_ago))
+                                except:
+                                    pass
+                        
+                        # 가중치 점수 계산
+                        skill_score = s_match * w_level * w_recency
+                        weighted_score += skill_score
+                        
+                        matched_skills.append(req_skill)
+                        skill_details.append({
+                            'skill': skill_name,
+                            'level': level,
+                            'years': emp_skill.get('years', 0),
+                            'score': round(skill_score, 2)
+                        })
+                        break
+            
+            # 도메인 경험 보너스 (Wdomain = 1.3)
+            # 프로젝트 이력에서 유사 도메인 경험 확인
+            domain_bonus = 0.0
+            for project in work_experience:
+                if isinstance(project, dict):
+                    # 프로젝트 이름이나 설명에서 도메인 키워드 확인
+                    project_name = project.get('project_name', '').lower()
+                    # 간단한 도메인 매칭 (실제로는 더 정교한 로직 필요)
+                    if any(keyword in project_name for keyword in ['금융', 'finance', '은행', 'banking']):
+                        domain_bonus = weighted_score * 0.3  # 30% 보너스
+                        break
+            
+            weighted_score += domain_bonus
             
             if matched_skills:
-                match_score = (len(matched_skills) / len(required_skills)) * 100
+                # 0-100 범위로 정규화
+                match_score = min(100.0, (weighted_score / len(required_skills)) * 50)
                 
                 matches.append({
                     'user_id': employee.get('user_id'),
@@ -210,9 +289,12 @@ def find_employees_by_skills(required_skills: List[str]) -> List[Dict[str, Any]]
                     'role': employee.get('basic_info', {}).get('role', ''),
                     'matched_skills': matched_skills,
                     'skill_match_score': match_score,
-                    'years_of_experience': employee.get('basic_info', {}).get('years_of_experience', 0)
+                    'skill_details': skill_details,
+                    'years_of_experience': employee.get('basic_info', {}).get('years_of_experience', 0),
+                    'domain_bonus': domain_bonus > 0
                 })
         
+        logger.info(f"기술 매칭 완료: {len(matches)}명 발견")
         return matches
         
     except Exception as e:
@@ -471,7 +553,7 @@ def check_availability(candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]
 
 def generate_reasoning(candidate: Dict[str, Any]) -> str:
     """
-    추천 근거 생성
+    추천 근거 생성 (상세 근거 포함)
     
     Requirements: 2.4 - Claude를 사용한 추천 근거 생성
     
@@ -482,25 +564,52 @@ def generate_reasoning(candidate: Dict[str, Any]) -> str:
         str: 추천 근거
     """
     try:
-        prompt = f"""다음 후보자에 대한 프로젝트 투입 추천 근거를 간결하게 작성해주세요:
+        # 기술 상세 정보 포맷팅
+        skill_details = candidate.get('skill_details', [])
+        skill_breakdown = "\n".join([
+            f"  - {s['skill']}: {s['level']} (경력 {s['years']}년, 가중치 점수: {s['score']})"
+            for s in skill_details
+        ]) if skill_details else "정보 없음"
+        
+        # 도메인 경험 여부
+        domain_exp = "유사 도메인 프로젝트 경험 있음" if candidate.get('domain_bonus') else "신규 도메인"
+        
+        prompt = f"""다음 후보자에 대한 프로젝트 투입 추천 근거를 구체적으로 작성해주세요:
 
-이름: {candidate.get('name')}
-역할: {candidate.get('role')}
-경력: {candidate.get('years_of_experience')}년
-기술 매칭 점수: {candidate.get('skill_match_score', 0):.1f}
-유사도 점수: {candidate.get('similarity_score', 0):.1f}
-친밀도 점수: {candidate.get('affinity_score', 0):.1f}
-종합 점수: {candidate.get('overall_score', 0):.1f}
-매칭된 기술: {', '.join(candidate.get('matched_skills', []))}
-가용성: {candidate.get('availability', 'Unknown')}
+## 후보자 정보
+- 이름: {candidate.get('name')}
+- 역할: {candidate.get('role')}
+- 총 경력: {candidate.get('years_of_experience')}년
 
-2-3문장으로 추천 이유를 설명해주세요."""
+## 점수 분석
+- 기술 매칭 점수: {candidate.get('skill_match_score', 0):.1f}/100
+  * 가중치 기반 계산 (숙련도 × 최신성 × 도메인 경험)
+- 벡터 유사도 점수: {candidate.get('similarity_score', 0):.1f}/100
+  * 프로젝트 요구사항과의 의미적 유사성
+- 팀 친밀도 점수: {candidate.get('affinity_score', 0):.1f}/100
+  * 기존 팀원들과의 협업 이력 및 커뮤니케이션 빈도
+- 종합 점수: {candidate.get('overall_score', 0):.1f}/100
+
+## 매칭된 기술 상세
+{skill_breakdown}
+
+## 추가 정보
+- 도메인 경험: {domain_exp}
+- 현재 가용성: {candidate.get('availability', 'Unknown')}
+- 진행 중인 프로젝트: {candidate.get('current_project', '없음')}
+
+위 정보를 바탕으로 다음 형식으로 추천 근거를 작성해주세요:
+1. 핵심 강점 (1-2문장)
+2. 프로젝트 적합성 (1-2문장)
+3. 추가 고려사항 (1문장)
+
+총 3-4문장으로 간결하게 작성해주세요."""
 
         response = bedrock_runtime.invoke_model(
             modelId='anthropic.claude-v2',
             body=json.dumps({
                 'prompt': f"\n\nHuman: {prompt}\n\nAssistant:",
-                'max_tokens_to_sample': 200,
+                'max_tokens_to_sample': 300,
                 'temperature': 0.7
             })
         )
@@ -512,7 +621,24 @@ def generate_reasoning(candidate: Dict[str, Any]) -> str:
         
     except Exception as e:
         logger.error(f"추천 근거 생성 실패: {str(e)}")
-        return f"기술 매칭 {candidate.get('skill_match_score', 0):.1f}점, 종합 점수 {candidate.get('overall_score', 0):.1f}점으로 추천됩니다."
+        
+        # 폴백: 구조화된 근거 생성
+        matched_skills = ', '.join(candidate.get('matched_skills', []))
+        skill_score = candidate.get('skill_match_score', 0)
+        affinity_score = candidate.get('affinity_score', 0)
+        availability = candidate.get('availability', 'Unknown')
+        
+        reasoning = f"""[핵심 강점] {matched_skills} 기술을 보유하고 있으며, 가중치 기반 기술 매칭 점수 {skill_score:.1f}점을 기록했습니다. """
+        
+        if affinity_score > 50:
+            reasoning += f"[팀 적합성] 기존 팀원들과의 친밀도 점수가 {affinity_score:.1f}점으로 높아 원활한 협업이 예상됩니다. "
+        
+        if availability == 'Available':
+            reasoning += "[가용성] 현재 투입 가능한 상태입니다."
+        elif availability == 'Busy':
+            reasoning += f"[고려사항] 현재 '{candidate.get('current_project', '다른 프로젝트')}'에 참여 중이므로 일정 조율이 필요합니다."
+        
+        return reasoning
 
 
 def decimal_default(obj):

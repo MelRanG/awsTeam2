@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Plus, Calendar, Users as UsersIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { api, Project as APIProject } from '../config/api';
 
 interface Project {
   id: string;
@@ -21,78 +22,53 @@ interface Project {
 
 export function ProjectManagement() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const projects: Project[] = [
-    {
-      id: '1',
-      name: '금융 플랫폼 구축',
-      client: 'A은행',
-      status: 'in-progress',
-      requiredSkills: ['React', 'Java', 'Spring', 'AWS', 'PostgreSQL'],
-      assignedMembers: 8,
-      requiredMembers: 10,
-      startDate: '2024.01.15',
-      endDate: '2024.12.31',
-      matchRate: 95,
-    },
-    {
-      id: '2',
-      name: 'AI 챗봇 개발',
-      client: 'B기업',
-      status: 'in-progress',
-      requiredSkills: ['Python', 'TensorFlow', 'NLP', 'FastAPI', 'Docker'],
-      assignedMembers: 5,
-      requiredMembers: 6,
-      startDate: '2024.03.01',
-      endDate: '2024.08.30',
-      matchRate: 88,
-    },
-    {
-      id: '3',
-      name: '물류 시스템 개선',
-      client: 'C물류',
-      status: 'in-progress',
-      requiredSkills: ['React', 'Node.js', 'MongoDB', 'Redis'],
-      assignedMembers: 6,
-      requiredMembers: 6,
-      startDate: '2024.02.01',
-      endDate: '2024.10.31',
-      matchRate: 92,
-    },
-    {
-      id: '4',
-      name: '헬스케어 앱 개발',
-      client: 'D병원',
-      status: 'planning',
-      requiredSkills: ['React Native', 'Node.js', 'Firebase', 'GraphQL'],
-      assignedMembers: 0,
-      requiredMembers: 5,
-      startDate: '2025.01.01',
-      endDate: '2025.06.30',
-    },
-    {
-      id: '5',
-      name: '스마트팩토리 시스템',
-      client: 'E제조',
-      status: 'planning',
-      requiredSkills: ['IoT', 'Python', 'AWS', 'React', 'Time Series DB'],
-      assignedMembers: 2,
-      requiredMembers: 8,
-      startDate: '2024.12.01',
-      endDate: '2025.08.31',
-    },
-    {
-      id: '6',
-      name: '전자상거래 플랫폼',
-      client: 'F커머스',
-      status: 'completed',
-      requiredSkills: ['Vue.js', 'Java', 'Kafka', 'Elasticsearch'],
-      assignedMembers: 10,
-      requiredMembers: 10,
-      startDate: '2023.06.01',
-      endDate: '2024.05.31',
-    },
-  ];
+  // DB에서 프로젝트 목록 가져오기
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        const response = await api.getProjects();
+        
+        // API 응답을 Project 형식으로 변환
+        const transformedData: Project[] = response.projects.map((proj: APIProject) => {
+          // 상태 매핑
+          let status: 'planning' | 'in-progress' | 'completed' = 'planning';
+          if (proj.status === 'active' || proj.status === 'in-progress') {
+            status = 'in-progress';
+          } else if (proj.status === 'completed') {
+            status = 'completed';
+          }
+
+          return {
+            id: proj.project_id,
+            name: proj.project_name,
+            client: '고객사', // 기본값 (DB에 없는 경우)
+            status,
+            requiredSkills: proj.required_skills || [],
+            assignedMembers: 0, // 기본값 (DB에 없는 경우)
+            requiredMembers: 5, // 기본값
+            startDate: proj.start_date || '미정',
+            endDate: '미정', // 기본값
+            matchRate: undefined,
+          };
+        });
+        
+        setProjects(transformedData);
+        setError(null);
+      } catch (err) {
+        console.error('프로젝트 목록 조회 실패:', err);
+        setError(err instanceof Error ? err.message : '프로젝트 목록을 불러오는데 실패했습니다');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   const filteredProjects = projects.filter((project) =>
     project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -131,7 +107,7 @@ export function ProjectManagement() {
       >
         <div>
           <h2 className="text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">프로젝트 관리</h2>
-          <p className="text-gray-600">진행 중인 프로젝트와 투입 인력을 관리하세요</p>
+          <p className="text-gray-600">진행 중인 프로젝트와 투입 인력을 관리하세요 (총 {projects.length}개)</p>
         </div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/30">
@@ -140,6 +116,28 @@ export function ProjectManagement() {
           </Button>
         </motion.div>
       </motion.div>
+
+      {/* 로딩 및 에러 상태 */}
+      {loading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-12"
+        >
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">프로젝트 목록을 불러오는 중...</p>
+        </motion.div>
+      )}
+
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700"
+        >
+          {error}
+        </motion.div>
+      )}
 
       {/* Search */}
       <motion.div
@@ -163,8 +161,14 @@ export function ProjectManagement() {
       </motion.div>
 
       {/* Projects List */}
-      <div className="space-y-4">
-        {filteredProjects.map((project, index) => (
+      {!loading && !error && (
+        <div className="space-y-4">
+          {filteredProjects.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">검색 결과가 없습니다</p>
+            </div>
+          ) : (
+            filteredProjects.map((project, index) => (
           <motion.div
             key={project.id}
             initial={{ opacity: 0, y: 20 }}
@@ -272,8 +276,10 @@ export function ProjectManagement() {
               </CardContent>
             </Card>
           </motion.div>
-        ))}
-      </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }

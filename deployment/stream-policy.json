@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:DescribeStream",
+        "dynamodb:ListStreams"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:us-east-2:412677576136:table/MessengerLogs/stream/*",
+        "arn:aws:dynamodb:us-east-2:412677576136:table/Employees/stream/*"
+      ]
+    }
+  ]
+}

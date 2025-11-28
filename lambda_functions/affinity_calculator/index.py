@@ -259,9 +259,14 @@ def calculate_overlap_months(duration_1: str, duration_2: str) -> int:
 
 def analyze_messenger_communication(employee_1_id: str, employee_2_id: str) -> MessengerCommunication:
     """
-    메신저 커뮤니케이션 분석
+    메신저 커뮤니케이션 분석 (가중치 기반)
     
     Requirements: 2-1.2, 2-1.3 - 메시지 빈도 및 응답 시간 분석
+    
+    가중치 공식: Score(A,B) = Σ(Mt × Wcontext × Wdecay)
+    - Mt: 메시지 발생 건수
+    - Wcontext: 상황별 가중치 (업무시간: 1.0, 업무외: 1.5, 행사: 2.0, 연차: 3.0)
+    - Wdecay: 시간 감쇠 (최근 1개월: 100%, 6개월: 50%)
     
     Args:
         employee_1_id: 직원 1 ID
@@ -271,24 +276,100 @@ def analyze_messenger_communication(employee_1_id: str, employee_2_id: str) -> M
         MessengerCommunication: 메신저 커뮤니케이션 정보
     """
     try:
+        import math
+        from datetime import datetime, timedelta
+        
         # MessengerLogs 테이블에서 데이터 조회
         table = dynamodb_client.get_table('MessengerLogs')
         
         # 두 직원 간 메시지 조회
-        # 실제 구현에서는 적절한 쿼리 사용
-        total_messages = 0
-        total_response_time = 0.0
-        message_count = 0
+        response = table.scan(
+            FilterExpression='(sender_id = :emp1 AND receiver_id = :emp2) OR (sender_id = :emp2 AND receiver_id = :emp1)',
+            ExpressionAttributeValues={
+                ':emp1': employee_1_id,
+                ':emp2': employee_2_id
+            }
+        )
         
-        # 간단한 구현: 기본값 사용
-        total_messages = 50
-        avg_response_time = 30.0  # 30분
+        messages = response.get('Items', [])
+        
+        # 회사 행사 및 연차 정보 조회
+        events_table = dynamodb_client.get_table('CompanyEvents')
+        events_response = events_table.scan()
+        company_events = events_response.get('Items', [])
+        
+        # 가중치 점수 계산
+        weighted_score = 0.0
+        total_messages = len(messages)
+        total_response_time = 0.0
+        response_count = 0
+        
+        current_time = datetime.now()
+        
+        for message in messages:
+            timestamp = message.get('timestamp', '')
+            if not timestamp:
+                continue
+            
+            try:
+                msg_time = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+            except:
+                continue
+            
+            # 1. 시간 감쇠 계산 (Wdecay)
+            days_ago = (current_time - msg_time).days
+            months_ago = days_ago / 30.0
+            
+            # 지수 감쇠: e^(-λt), λ = 0.1
+            time_decay = math.exp(-0.1 * months_ago)
+            
+            # 2. 상황별 가중치 계산 (Wcontext)
+            hour = msg_time.hour
+            is_weekend = msg_time.weekday() >= 5
+            
+            # 기본 가중치
+            context_weight = 1.0
+            
+            # 업무 시간 외 (18:00 이후 또는 09:00 이전)
+            if hour < 9 or hour >= 18:
+                context_weight = 1.5
+            
+            # 주말
+            if is_weekend:
+                context_weight = 1.5
+            
+            # 회사 행사 기간 확인
+            for event in company_events:
+                event_date = event.get('event_date', '')
+                if event_date and event_date == msg_time.strftime('%Y-%m-%d'):
+                    context_weight = 2.0
+                    break
+            
+            # 연차/휴가 기간 확인 (메시지 메타데이터에서)
+            if message.get('is_vacation_period', False):
+                context_weight = 3.0
+            
+            # 3. 가중치 점수 누적
+            weighted_score += 1.0 * context_weight * time_decay
+            
+            # 응답 시간 계산
+            if message.get('response_time_minutes'):
+                total_response_time += float(message.get('response_time_minutes', 0))
+                response_count += 1
+        
+        # 평균 응답 시간
+        avg_response_time = total_response_time / response_count if response_count > 0 else 0.0
         
         # 커뮤니케이션 점수 계산 (0-100)
-        # 메시지 수와 응답 시간을 고려
-        message_score = min(50.0, total_messages / 2.0)
-        response_score = max(0.0, 50.0 - (avg_response_time / 10.0))
-        communication_score = message_score + response_score
+        # 가중치 점수를 0-100 범위로 정규화
+        communication_score = min(100.0, weighted_score * 2.0)
+        
+        # 응답 시간 보정 (빠른 응답일수록 가점)
+        if avg_response_time > 0:
+            response_bonus = max(0, 20 - (avg_response_time / 10.0))
+            communication_score = min(100.0, communication_score + response_bonus)
+        
+        logger.info(f"메신저 분석 완료: {employee_1_id}-{employee_2_id}, 메시지: {total_messages}, 가중치 점수: {weighted_score:.2f}, 최종 점수: {communication_score:.2f}")
         
         return MessengerCommunication(
             total_messages_exchanged=total_messages,

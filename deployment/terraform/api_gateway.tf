@@ -27,7 +27,7 @@ resource "aws_api_gateway_method" "recommendations_post" {
   rest_api_id   = aws_api_gateway_rest_api.hr_api.id
   resource_id   = aws_api_gateway_resource.recommendations.id
   http_method   = "POST"
-  authorization = "AWS_IAM"
+  authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "recommendations_lambda" {
@@ -58,7 +58,7 @@ resource "aws_api_gateway_method" "domain_analysis_post" {
   rest_api_id   = aws_api_gateway_rest_api.hr_api.id
   resource_id   = aws_api_gateway_resource.domain_analysis.id
   http_method   = "POST"
-  authorization = "AWS_IAM"
+  authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "domain_analysis_lambda" {
@@ -89,7 +89,7 @@ resource "aws_api_gateway_method" "quantitative_analysis_post" {
   rest_api_id   = aws_api_gateway_rest_api.hr_api.id
   resource_id   = aws_api_gateway_resource.quantitative_analysis.id
   http_method   = "POST"
-  authorization = "AWS_IAM"
+  authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "quantitative_analysis_lambda" {
@@ -120,7 +120,7 @@ resource "aws_api_gateway_method" "qualitative_analysis_post" {
   rest_api_id   = aws_api_gateway_rest_api.hr_api.id
   resource_id   = aws_api_gateway_resource.qualitative_analysis.id
   http_method   = "POST"
-  authorization = "AWS_IAM"
+  authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "qualitative_analysis_lambda" {
@@ -256,4 +256,161 @@ resource "aws_api_gateway_stage" "prod" {
 output "api_gateway_url" {
   value       = aws_api_gateway_stage.prod.invoke_url
   description = "API Gateway invoke URL"
+}
+
+
+# /employees resource
+resource "aws_api_gateway_resource" "employees" {
+  rest_api_id = aws_api_gateway_rest_api.hr_api.id
+  parent_id   = aws_api_gateway_rest_api.hr_api.root_resource_id
+  path_part   = "employees"
+}
+
+resource "aws_api_gateway_method" "employees_get" {
+  rest_api_id   = aws_api_gateway_rest_api.hr_api.id
+  resource_id   = aws_api_gateway_resource.employees.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "employees_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.hr_api.id
+  resource_id             = aws_api_gateway_resource.employees.id
+  http_method             = aws_api_gateway_method.employees_get.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.employees_list.invoke_arn
+}
+
+resource "aws_lambda_permission" "api_gateway_employees" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.employees_list.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.hr_api.execution_arn}/*/*"
+}
+
+# /projects resource
+resource "aws_api_gateway_resource" "projects" {
+  rest_api_id = aws_api_gateway_rest_api.hr_api.id
+  parent_id   = aws_api_gateway_rest_api.hr_api.root_resource_id
+  path_part   = "projects"
+}
+
+resource "aws_api_gateway_method" "projects_get" {
+  rest_api_id   = aws_api_gateway_rest_api.hr_api.id
+  resource_id   = aws_api_gateway_resource.projects.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "projects_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.hr_api.id
+  resource_id             = aws_api_gateway_resource.projects.id
+  http_method             = aws_api_gateway_method.projects_get.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.projects_list.invoke_arn
+}
+
+resource "aws_lambda_permission" "api_gateway_projects" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.projects_list.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.hr_api.execution_arn}/*/*"
+}
+
+# CORS for /employees
+resource "aws_api_gateway_method" "employees_options" {
+  rest_api_id   = aws_api_gateway_rest_api.hr_api.id
+  resource_id   = aws_api_gateway_resource.employees.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "employees_options" {
+  rest_api_id = aws_api_gateway_rest_api.hr_api.id
+  resource_id = aws_api_gateway_resource.employees.id
+  http_method = "OPTIONS"
+  type        = "MOCK"
+  
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "employees_options" {
+  rest_api_id = aws_api_gateway_rest_api.hr_api.id
+  resource_id = aws_api_gateway_resource.employees.id
+  http_method = "OPTIONS"
+  status_code = "200"
+  
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "employees_options" {
+  rest_api_id = aws_api_gateway_rest_api.hr_api.id
+  resource_id = aws_api_gateway_resource.employees.id
+  http_method = "OPTIONS"
+  status_code = "200"
+  
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+  
+  depends_on = [aws_api_gateway_integration.employees_options]
+}
+
+# CORS for /projects
+resource "aws_api_gateway_method" "projects_options" {
+  rest_api_id   = aws_api_gateway_rest_api.hr_api.id
+  resource_id   = aws_api_gateway_resource.projects.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "projects_options" {
+  rest_api_id = aws_api_gateway_rest_api.hr_api.id
+  resource_id = aws_api_gateway_resource.projects.id
+  http_method = "OPTIONS"
+  type        = "MOCK"
+  
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "projects_options" {
+  rest_api_id = aws_api_gateway_rest_api.hr_api.id
+  resource_id = aws_api_gateway_resource.projects.id
+  http_method = "OPTIONS"
+  status_code = "200"
+  
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "projects_options" {
+  rest_api_id = aws_api_gateway_rest_api.hr_api.id
+  resource_id = aws_api_gateway_resource.projects.id
+  http_method = "OPTIONS"
+  status_code = "200"
+  
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+  
+  depends_on = [aws_api_gateway_integration.projects_options]
 }

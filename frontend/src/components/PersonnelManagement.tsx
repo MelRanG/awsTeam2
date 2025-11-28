@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from './ui/card';
@@ -6,6 +6,7 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { api, Employee } from '../config/api';
 
 interface Personnel {
   id: string;
@@ -21,69 +22,41 @@ interface Personnel {
 export function PersonnelManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPerson, setSelectedPerson] = useState<Personnel | null>(null);
+  const [personnel, setPersonnel] = useState<Personnel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const personnel: Personnel[] = [
-    {
-      id: '1',
-      name: '김철수',
-      position: 'Senior Developer',
-      department: '개발팀',
-      skills: ['React', 'Node.js', 'AWS', 'Docker'],
-      experience: 8,
-      currentProject: '금융 플랫폼 구축',
-      availability: 'busy',
-    },
-    {
-      id: '2',
-      name: '이영희',
-      position: 'Tech Lead',
-      department: '개발팀',
-      skills: ['Java', 'Spring', 'Kubernetes', 'PostgreSQL'],
-      experience: 12,
-      currentProject: null,
-      availability: 'available',
-    },
-    {
-      id: '3',
-      name: '박지민',
-      position: 'DevOps Engineer',
-      department: '인프라팀',
-      skills: ['AWS', 'Terraform', 'Jenkins', 'Docker'],
-      experience: 6,
-      currentProject: 'AI 챗봇 개발',
-      availability: 'busy',
-    },
-    {
-      id: '4',
-      name: '최민수',
-      position: 'Data Engineer',
-      department: '데이터팀',
-      skills: ['Python', 'Spark', 'Airflow', 'AWS'],
-      experience: 5,
-      currentProject: null,
-      availability: 'available',
-    },
-    {
-      id: '5',
-      name: '정수진',
-      position: 'Frontend Developer',
-      department: '개발팀',
-      skills: ['React', 'TypeScript', 'Next.js', 'Tailwind'],
-      experience: 4,
-      currentProject: '물류 시스템 개선',
-      availability: 'busy',
-    },
-    {
-      id: '6',
-      name: '강동원',
-      position: 'Backend Developer',
-      department: '개발팀',
-      skills: ['Python', 'Django', 'FastAPI', 'Redis'],
-      experience: 7,
-      currentProject: null,
-      availability: 'available',
-    },
-  ];
+  // DB에서 직원 목록 가져오기
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        setLoading(true);
+        const response = await api.getEmployees();
+        
+        // API 응답을 Personnel 형식으로 변환
+        const transformedData: Personnel[] = response.employees.map((emp: Employee) => ({
+          id: emp.user_id,
+          name: emp.basic_info.name,
+          position: emp.basic_info.role,
+          department: '개발팀', // 기본값 (DB에 없는 경우)
+          skills: emp.skills.map(s => s.name),
+          experience: emp.basic_info.years_of_experience,
+          currentProject: null, // 기본값 (DB에 없는 경우)
+          availability: 'available' as const, // 기본값
+        }));
+        
+        setPersonnel(transformedData);
+        setError(null);
+      } catch (err) {
+        console.error('직원 목록 조회 실패:', err);
+        setError(err instanceof Error ? err.message : '직원 목록을 불러오는데 실패했습니다');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmployees();
+  }, []);
 
   const filteredPersonnel = personnel.filter((person) =>
     person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -122,7 +95,7 @@ export function PersonnelManagement() {
       >
         <div>
           <h2 className="text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">인력 관리</h2>
-          <p className="text-gray-600">전체 인력 정보를 확인하고 관리하세요</p>
+          <p className="text-gray-600">전체 인력 정보를 확인하고 관리하세요 (총 {personnel.length}명)</p>
         </div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/30">
@@ -131,6 +104,28 @@ export function PersonnelManagement() {
           </Button>
         </motion.div>
       </motion.div>
+
+      {/* 로딩 및 에러 상태 */}
+      {loading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-12"
+        >
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">직원 목록을 불러오는 중...</p>
+        </motion.div>
+      )}
+
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700"
+        >
+          {error}
+        </motion.div>
+      )}
 
       {/* Search and Filter */}
       <motion.div
@@ -162,8 +157,14 @@ export function PersonnelManagement() {
       </motion.div>
 
       {/* Personnel Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPersonnel.map((person, index) => (
+      {!loading && !error && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredPersonnel.length === 0 ? (
+            <div className="col-span-full text-center py-12">
+              <p className="text-gray-600">검색 결과가 없습니다</p>
+            </div>
+          ) : (
+            filteredPersonnel.map((person, index) => (
           <Dialog key={person.id}>
             <DialogTrigger asChild>
               <motion.div
@@ -291,8 +292,10 @@ export function PersonnelManagement() {
               </div>
             </DialogContent>
           </Dialog>
-        ))}
-      </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -42,6 +42,11 @@ def convert_floats_to_decimal(obj):
 
 def load_json_file(file_path: str) -> List[Dict[str, Any]]:
     """JSON 파일 로드"""
+    # 상대 경로를 절대 경로로 변환
+    if not os.path.isabs(file_path):
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        file_path = os.path.join(os.path.dirname(script_dir), file_path)
+    
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)

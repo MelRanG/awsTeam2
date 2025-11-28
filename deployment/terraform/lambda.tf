@@ -2,7 +2,7 @@
 
 # Lambda Layer for dependencies
 resource "aws_lambda_layer_version" "boto3_layer" {
-  filename   = "lambda_layers/boto3_layer.zip"
+  filename   = "../../lambda_layers/boto3_layer.zip"
   layer_name = "boto3-layer-team2"
   
   compatible_runtimes = ["python3.11"]
@@ -14,21 +14,13 @@ resource "aws_lambda_layer_version" "boto3_layer" {
 
 # Resume Parser Lambda
 resource "aws_lambda_function" "resume_parser" {
-  filename      = "lambda_functions/resume_parser.zip"
+  filename      = "../../lambda_functions/resume_parser.zip"
   function_name = "ResumeParser"
   role          = aws_iam_role.lambda_execution_team2.arn
   handler       = "index.handler"
   runtime       = "python3.11"
   timeout       = 300
   memory_size   = 1024
-  
-  environment {
-    variables = {
-      DYNAMODB_TABLE    = aws_dynamodb_table.employees.name
-      BEDROCK_MODEL_ID  = "anthropic.claude-v2"
-      AWS_REGION        = var.aws_region
-    }
-  }
   
   layers = [aws_lambda_layer_version.boto3_layer.arn]
   
@@ -50,22 +42,13 @@ resource "aws_lambda_permission" "allow_s3_resume_parser" {
 
 # Affinity Score Calculator Lambda
 resource "aws_lambda_function" "affinity_calculator" {
-  filename      = "lambda_functions/affinity_calculator.zip"
+  filename      = "../../lambda_functions/affinity_calculator.zip"
   function_name = "AffinityScoreCalculator"
   role          = aws_iam_role.lambda_execution_team2.arn
   handler       = "index.handler"
   runtime       = "python3.11"
   timeout       = 180
   memory_size   = 512
-  
-  environment {
-    variables = {
-      DYNAMODB_AFFINITY_TABLE  = aws_dynamodb_table.employee_affinity.name
-      DYNAMODB_MESSENGER_TABLE = aws_dynamodb_table.messenger_logs.name
-      DYNAMODB_EVENTS_TABLE    = aws_dynamodb_table.company_events.name
-      AWS_REGION               = var.aws_region
-    }
-  }
   
   layers = [aws_lambda_layer_version.boto3_layer.arn]
   
@@ -106,24 +89,13 @@ resource "aws_lambda_permission" "allow_eventbridge_affinity" {
 
 # Project Recommendation Engine Lambda
 resource "aws_lambda_function" "recommendation_engine" {
-  filename      = "lambda_functions/recommendation_engine.zip"
+  filename      = "../../lambda_functions/recommendation_engine.zip"
   function_name = "ProjectRecommendationEngine"
   role          = aws_iam_role.lambda_execution_team2.arn
   handler       = "index.handler"
   runtime       = "python3.11"
   timeout       = 300
   memory_size   = 2048
-  
-  environment {
-    variables = {
-      DYNAMODB_EMPLOYEES_TABLE = aws_dynamodb_table.employees.name
-      DYNAMODB_PROJECTS_TABLE  = aws_dynamodb_table.projects.name
-      DYNAMODB_AFFINITY_TABLE  = aws_dynamodb_table.employee_affinity.name
-      OPENSEARCH_ENDPOINT      = aws_opensearch_domain.hr_search.endpoint
-      BEDROCK_MODEL_ID         = "anthropic.claude-v2"
-      AWS_REGION               = var.aws_region
-    }
-  }
   
   layers = [aws_lambda_layer_version.boto3_layer.arn]
   
@@ -137,22 +109,13 @@ resource "aws_lambda_function" "recommendation_engine" {
 
 # Domain Analysis Engine Lambda
 resource "aws_lambda_function" "domain_analysis" {
-  filename      = "lambda_functions/domain_analysis.zip"
+  filename      = "../../lambda_functions/domain_analysis.zip"
   function_name = "DomainAnalysisEngine"
   role          = aws_iam_role.lambda_execution_team2.arn
   handler       = "index.handler"
   runtime       = "python3.11"
   timeout       = 300
   memory_size   = 1024
-  
-  environment {
-    variables = {
-      DYNAMODB_EMPLOYEES_TABLE = aws_dynamodb_table.employees.name
-      DYNAMODB_PROJECTS_TABLE  = aws_dynamodb_table.projects.name
-      BEDROCK_MODEL_ID         = "anthropic.claude-v2"
-      AWS_REGION               = var.aws_region
-    }
-  }
   
   layers = [aws_lambda_layer_version.boto3_layer.arn]
   
@@ -166,20 +129,13 @@ resource "aws_lambda_function" "domain_analysis" {
 
 # Quantitative Analysis Lambda
 resource "aws_lambda_function" "quantitative_analysis" {
-  filename      = "lambda_functions/quantitative_analysis.zip"
+  filename      = "../../lambda_functions/quantitative_analysis.zip"
   function_name = "QuantitativeAnalysis"
   role          = aws_iam_role.lambda_execution_team2.arn
   handler       = "index.handler"
   runtime       = "python3.11"
   timeout       = 120
   memory_size   = 512
-  
-  environment {
-    variables = {
-      DYNAMODB_EMPLOYEES_TABLE = aws_dynamodb_table.employees.name
-      AWS_REGION               = var.aws_region
-    }
-  }
   
   layers = [aws_lambda_layer_version.boto3_layer.arn]
   
@@ -193,21 +149,13 @@ resource "aws_lambda_function" "quantitative_analysis" {
 
 # Qualitative Analysis Lambda
 resource "aws_lambda_function" "qualitative_analysis" {
-  filename      = "lambda_functions/qualitative_analysis.zip"
+  filename      = "../../lambda_functions/qualitative_analysis.zip"
   function_name = "QualitativeAnalysis"
   role          = aws_iam_role.lambda_execution_team2.arn
   handler       = "index.handler"
   runtime       = "python3.11"
   timeout       = 180
   memory_size   = 1024
-  
-  environment {
-    variables = {
-      DYNAMODB_EMPLOYEES_TABLE = aws_dynamodb_table.employees.name
-      BEDROCK_MODEL_ID         = "anthropic.claude-v2"
-      AWS_REGION               = var.aws_region
-    }
-  }
   
   layers = [aws_lambda_layer_version.boto3_layer.arn]
   
@@ -221,21 +169,13 @@ resource "aws_lambda_function" "qualitative_analysis" {
 
 # Tech Trend Collector Lambda
 resource "aws_lambda_function" "tech_trend_collector" {
-  filename      = "lambda_functions/tech_trend_collector.zip"
+  filename      = "../../lambda_functions/tech_trend_collector.zip"
   function_name = "TechTrendCollector"
   role          = aws_iam_role.lambda_execution_team2.arn
   handler       = "index.handler"
   runtime       = "python3.11"
   timeout       = 180
   memory_size   = 512
-  
-  environment {
-    variables = {
-      DYNAMODB_TRENDS_TABLE = aws_dynamodb_table.tech_trends.name
-      EXTERNAL_API_KEY      = var.external_api_key
-      AWS_REGION            = var.aws_region
-    }
-  }
   
   layers = [aws_lambda_layer_version.boto3_layer.arn]
   
@@ -276,22 +216,13 @@ resource "aws_lambda_permission" "allow_eventbridge_tech_trends" {
 
 # Vector Embedding Generator Lambda
 resource "aws_lambda_function" "vector_embedding" {
-  filename      = "lambda_functions/vector_embedding.zip"
+  filename      = "../../lambda_functions/vector_embedding.zip"
   function_name = "VectorEmbeddingGenerator"
   role          = aws_iam_role.lambda_execution_team2.arn
   handler       = "index.handler"
   runtime       = "python3.11"
   timeout       = 180
   memory_size   = 1024
-  
-  environment {
-    variables = {
-      DYNAMODB_EMPLOYEES_TABLE = aws_dynamodb_table.employees.name
-      OPENSEARCH_ENDPOINT      = aws_opensearch_domain.hr_search.endpoint
-      BEDROCK_MODEL_ID         = "amazon.titan-embed-text-v1"
-      AWS_REGION               = var.aws_region
-    }
-  }
   
   layers = [aws_lambda_layer_version.boto3_layer.arn]
   

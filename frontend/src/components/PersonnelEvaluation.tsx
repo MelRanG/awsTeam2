@@ -196,15 +196,15 @@ export function PersonnelEvaluation() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="flex gap-3"
+        className="flex gap-4"
       >
         <Button
           onClick={() => setSearchMode('name')}
           variant={searchMode === 'name' ? 'default' : 'outline'}
-          className={`flex-1 h-16 ${
+          className={`flex-1 py-6 text-base font-semibold ${
             searchMode === 'name'
-              ? 'bg-gradient-to-r from-blue-600 to-indigo-600'
-              : ''
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+              : 'hover:bg-gray-50'
           }`}
         >
           <User className="w-5 h-5 mr-2" />
@@ -213,10 +213,10 @@ export function PersonnelEvaluation() {
         <Button
           onClick={() => setSearchMode('upload')}
           variant={searchMode === 'upload' ? 'default' : 'outline'}
-          className={`flex-1 h-16 ${
+          className={`flex-1 py-6 text-base font-semibold ${
             searchMode === 'upload'
-              ? 'bg-gradient-to-r from-blue-600 to-indigo-600'
-              : ''
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+              : 'hover:bg-gray-50'
           }`}
         >
           <Upload className="w-5 h-5 mr-2" />
@@ -248,13 +248,9 @@ export function PersonnelEvaluation() {
                     />
                   </div>
                   <Button
-                    onClick={() => {
-                      console.log('검색 버튼 클릭됨!');
-                      handleSearchEmployee();
-                    }}
+                    onClick={handleSearchEmployee}
                     disabled={searchingEmployee}
-                    className="h-12 px-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-base font-semibold min-w-[120px]"
-                    type="button"
+                    className="h-12 px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                   >
                     {searchingEmployee ? (
                       <>
@@ -334,8 +330,7 @@ export function PersonnelEvaluation() {
                 </p>
                 <Button
                   onClick={() => setIsUploadModalOpen(true)}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600"
-                  size="lg"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-8 py-6 text-base"
                 >
                   <Upload className="w-5 h-5 mr-2" />
                   이력서 업로드
@@ -663,12 +658,18 @@ export function PersonnelEvaluation() {
       <ResumeUploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        onUploadSuccess={(fileKey) => {
-          console.log('이력서 업로드 완료:', fileKey);
+        onUploadSuccess={(evaluationResult) => {
+          console.log('이력서 분석 완료:', evaluationResult);
           setIsUploadModalOpen(false);
-          toast.success('이력서가 업로드되었습니다!', {
-            description: '분석이 완료되면 결과가 표시됩니다.',
+          
+          // 평가 결과를 메인 화면에 표시
+          setEvaluationResult(evaluationResult);
+          setSelectedEmployee({
+            name: evaluationResult.name,
+            user_id: evaluationResult.employee_id,
           });
+          
+          toast.success('이력서 분석이 완료되었습니다!');
         }}
       />
     </div>

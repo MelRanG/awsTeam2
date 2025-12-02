@@ -24,12 +24,10 @@ bedrock_runtime = boto3.client('bedrock-runtime')
 
 def handler(event, context):
     """
-    Lambda handler for S3 trigger
-    
-    Requirements: 10.1 - S3 이벤트 처리 및 PDF 다운로드
+    Lambda handler - S3 트리거 또는 API Gateway 요청 처리
     
     Args:
-        event: S3 이벤트
+        event: S3 이벤트 또는 API Gateway 이벤트
         context: Lambda 컨텍스트
         
     Returns:
@@ -37,6 +35,12 @@ def handler(event, context):
     """
     try:
         logger.info(f"이벤트 수신: {json.dumps(event)}")
+        
+        # API Gateway 요청인지 확인
+        if 'httpMethod' in event:
+            logger.info("API Gateway 요청 처리")
+            from parse_handler import parse_resume_handler
+            return parse_resume_handler(event, context)
         
         # S3 이벤트 파싱
         for record in event.get('Records', []):

@@ -3,11 +3,30 @@ import { Upload, X, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
+import { ResumeEvaluationModal } from './ResumeEvaluationModal';
 
 interface ResumeUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUploadSuccess?: (fileKey: string) => void;
+  onUploadSuccess?: (evaluationResult: any) => void;
+}
+
+interface EvaluationData {
+  employee_id: string;
+  name: string;
+  email: string;
+  role: string;
+  years_of_experience: number;
+  department: string;
+  skills: Array<{
+    name: string;
+    level: string;
+    years: number;
+  }>;
+  quantitative_score: number;
+  qualitative_analysis: string;
+  domain_expertise: Record<string, number>;
+  file_key: string;
 }
 
 export function ResumeUploadModal({ isOpen, onClose, onUploadSuccess }: ResumeUploadModalProps) {
@@ -16,6 +35,8 @@ export function ResumeUploadModal({ isOpen, onClose, onUploadSuccess }: ResumeUp
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [evaluationData, setEvaluationData] = useState<EvaluationData | null>(null);
+  const [showEvaluationModal, setShowEvaluationModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,15 +132,38 @@ export function ResumeUploadModal({ isOpen, onClose, onUploadSuccess }: ResumeUp
       setUploadProgress(100);
       setUploadStatus('success');
       
-      // 성공 콜백 호출
-      if (onUploadSuccess) {
-        onUploadSuccess(file_key);
+      // 3. 이력서 파싱 및 평가 요청
+      console.log('=== 이력서 분석 시작 ===');
+      console.log('파일 키:', file_key);
+      console.log('API URL:', `${apiUrl}/resume/parse`);
+      
+      const evaluationResponse = await fetch(`${apiUrl}/resume/parse`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          file_key: file_key,
+        }),
+      });
+
+      if (!evaluationResponse.ok) {
+        const errorText = await evaluationResponse.text();
+        console.error('이력서 분석 실패:', evaluationResponse.status, errorText);
+        throw new Error(`이력서 분석 실패: ${evaluationResponse.status}`);
       }
 
-      // 2초 후 모달 닫기
-      setTimeout(() => {
-        handleClose();
-      }, 2000);
+      const evaluationResult = await evaluationResponse.json();
+      console.log('=== 이력서 분석 완료 ===');
+      console.log('분석 결과:', evaluationResult);
+      
+      // 성공 콜백 호출 - 부모 컴포넌트로 결과 전달
+      if (onUploadSuccess) {
+        onUploadSuccess(evaluationResult);
+      }
+      
+      // 업로드 모달 닫기
+      handleClose();
 
     } catch (error) {
       console.error('Upload error:', error);
@@ -138,28 +182,64 @@ export function ResumeUploadModal({ isOpen, onClose, onUploadSuccess }: ResumeUp
     onClose();
   };
 
-  if (!isOpen) return null;
+  const handleApprove = async (data: EvaluationData) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://your-api-gateway-url';
+      
+      // 직원 등록 API 호출
+      const response = await fetch(`${apiUrl}/employees`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('직원 등록 실패');
+      }
+
+      console.log('직원 등록 완료');
+      
+      // 성공 콜백 호출
+      if (onUploadSuccess) {
+        onUploadSuccess(data.file_key);
+      }
+      
+      alert('직원이 성공적으로 등록되었습니다!');
+    } catch (error) {
+      console.error('직원 등록 에러:', error);
+      throw error;
+    }
+  };
+
+  const handleReject = () => {
+    console.log('이력서 반려됨');
+    alert('이력서가 반려되었습니다. 데이터가 저장되지 않았습니다.');
+  };
 
   return (
+    <>
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      {isOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="w-full max-w-lg mx-4"
+          className="w-80 mx-4"
         >
-          <Card className="bg-white p-6 shadow-2xl">
+          <Card className="bg-white p-3 shadow-[0_25px_80px_rgba(0,0,0,0.8)] border-[6px] border-blue-500 rounded-2xl ring-4 ring-white">
             {/* 헤더 */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-bold text-gray-900">
                 이력서 업로드
               </h2>
               <button
                 onClick={handleClose}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className="w-4 h-4 text-gray-500" />
               </button>
             </div>
 
@@ -169,7 +249,7 @@ export function ResumeUploadModal({ isOpen, onClose, onUploadSuccess }: ResumeUp
               onDragOver={handleDragOver}
               onClick={() => fileInputRef.current?.click()}
               className={`
-                border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
+                border-2 border-dashed rounded-lg p-4 text-center cursor-pointer
                 transition-all duration-200
                 ${file ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'}
               `}
@@ -183,33 +263,33 @@ export function ResumeUploadModal({ isOpen, onClose, onUploadSuccess }: ResumeUp
               />
 
               {!file ? (
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <div className="flex justify-center">
-                    <div className="p-4 bg-blue-100 rounded-full">
-                      <Upload className="w-8 h-8 text-blue-600" />
+                    <div className="p-2 bg-blue-100 rounded-full">
+                      <Upload className="w-5 h-5 text-blue-600" />
                     </div>
                   </div>
                   <div>
-                    <p className="text-lg font-semibold text-gray-900 mb-1">
-                      파일을 드래그하거나 클릭하여 선택
+                    <p className="text-xs font-semibold text-gray-900 mb-0.5">
+                      이력서를 업로드하세요
                     </p>
-                    <p className="text-sm text-gray-600">
-                      PDF 파일만 지원 (최대 10MB)
+                    <p className="text-xs text-gray-500">
+                      파일을 드래그하거나 클릭 (PDF, 최대 10MB)
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <div className="flex justify-center">
-                    <div className="p-4 bg-blue-100 rounded-full">
-                      <FileText className="w-8 h-8 text-blue-600" />
+                    <div className="p-2 bg-green-100 rounded-full">
+                      <FileText className="w-5 h-5 text-green-600" />
                     </div>
                   </div>
                   <div>
-                    <p className="text-lg font-semibold text-gray-900 mb-1">
+                    <p className="text-xs font-semibold text-gray-900 mb-0.5">
                       {file.name}
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-xs text-gray-600">
                       {(file.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   </div>
@@ -266,18 +346,18 @@ export function ResumeUploadModal({ isOpen, onClose, onUploadSuccess }: ResumeUp
             )}
 
             {/* 액션 버튼 */}
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-2 mt-3">
               <Button
                 variant="outline"
                 onClick={handleClose}
-                className="flex-1"
+                className="flex-1 h-8 text-xs"
                 disabled={uploading}
               >
                 취소
               </Button>
               <Button
                 onClick={handleUpload}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                className="flex-1 h-8 text-xs bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                 disabled={!file || uploading || uploadStatus === 'success'}
               >
                 {uploading ? '업로드 중...' : '업로드'}
@@ -285,18 +365,28 @@ export function ResumeUploadModal({ isOpen, onClose, onUploadSuccess }: ResumeUp
             </div>
 
             {/* 안내 사항 */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-xl">
-              <p className="text-xs text-blue-900 font-semibold mb-2">업로드 후 자동 처리</p>
-              <ul className="text-xs text-blue-700 space-y-1">
-                <li>• AWS Textract로 텍스트 자동 추출</li>
-                <li>• AI가 기술 스택, 경력, 프로젝트 이력 분석</li>
-                <li>• 정량적/정성적 평가 자동 수행</li>
-                <li>• 처리 완료 시 평가 현황에 표시</li>
+            <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+              <p className="text-xs text-blue-900 font-semibold mb-1">업로드 후 자동 처리</p>
+              <ul className="text-xs text-blue-700 space-y-0.5">
+                <li>• Textract로 텍스트 추출</li>
+                <li>• AI가 기술/경력 분석</li>
+                <li>• 정량/정성 평가 수행</li>
               </ul>
             </div>
           </Card>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
+    
+    {/* 평가 결과 모달 */}
+    <ResumeEvaluationModal
+      isOpen={showEvaluationModal}
+      evaluationData={evaluationData}
+      onApprove={handleApprove}
+      onReject={handleReject}
+      onClose={() => setShowEvaluationModal(false)}
+    />
+    </>
   );
 }

@@ -52,6 +52,20 @@
     build: {
       target: 'esnext',
       outDir: 'build',
+      rollupOptions: {
+        output: {
+          // 파일명에 타임스탬프 추가하여 항상 새로운 파일명 생성
+          entryFileNames: (chunkInfo) => {
+            return `assets/[name]-[hash]-${Date.now()}.js`;
+          },
+          chunkFileNames: (chunkInfo) => {
+            return `assets/[name]-[hash]-${Date.now()}.js`;
+          },
+          assetFileNames: (assetInfo) => {
+            return `assets/[name]-[hash]-${Date.now()}[extname]`;
+          }
+        }
+      }
     },
     server: {
       port: 3000,

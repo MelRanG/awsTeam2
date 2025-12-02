@@ -80,14 +80,17 @@ def lambda_handler(event, context):
         file_key = f"uploads/{timestamp}_{unique_id}_{file_name}"
         
         # Presigned URL 생성 (1시간 유효)
+        # ACL 없이 생성하여 권한 문제 방지
         presigned_url = s3_client.generate_presigned_url(
             'put_object',
             Params={
                 'Bucket': RESUMES_BUCKET,
                 'Key': file_key,
-                'ContentType': content_type
+                'ContentType': content_type,
+                # ACL 제거 - 버킷 정책으로 관리
             },
-            ExpiresIn=3600  # 1시간
+            ExpiresIn=3600,  # 1시간
+            HttpMethod='PUT'
         )
         
         return {

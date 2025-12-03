@@ -207,3 +207,33 @@ resource "aws_dynamodb_table" "employee_evaluations" {
     Environment = var.environment
   }
 }
+
+# Pending Candidates Table
+resource "aws_dynamodb_table" "pending_candidates" {
+  name           = "PendingCandidates"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "candidate_id"
+  
+  attribute {
+    name = "candidate_id"
+    type = "S"
+  }
+  
+  attribute {
+    name = "submitted_at"
+    type = "S"
+  }
+  
+  global_secondary_index {
+    name            = "SubmittedAtIndex"
+    hash_key        = "submitted_at"
+    projection_type = "ALL"
+  }
+  
+  tags = {
+    Team        = "Team2"
+    EmployeeID  = "524956"
+    Project     = "HR-Resource-Optimization"
+    Environment = var.environment
+  }
+}

@@ -139,6 +139,19 @@ def create_employee(event_body: Dict[str, Any]) -> Dict[str, Any]:
         if certs:
             employee_data['certifications'] = certs
     
+    # 대기자(pending) 관련 필드 추가
+    if 'status' in event_body:
+        employee_data['status'] = event_body['status']
+    
+    if 'evaluation_data' in event_body:
+        employee_data['evaluation_data'] = event_body['evaluation_data']
+    
+    if 'verification_questions' in event_body:
+        employee_data['verification_questions'] = event_body['verification_questions']
+    
+    # 제출 시간 추가
+    employee_data['submitted_at'] = datetime.utcnow().isoformat()
+    
     # Pydantic 모델로 검증
     try:
         employee = Employee(**employee_data)
@@ -148,13 +161,36 @@ def create_employee(event_body: Dict[str, Any]) -> Dict[str, Any]:
     
     # DynamoDB에 저장
     try:
-        employees_table.put_item(Item=employee.to_dynamodb())
-        logger.info(f"직원 생성 완료: {user_id}")
+        # status='pending'이면 PendingCandidates 테이블에 저장
+        if employee_data.get('status') == 'pending':
+            pending_table = dynamodb.Table('PendingCandidates')
+            
+            # candidate_id 생성
+            candidate_id = f"C_{uuid.uuid4().hex[:8].upper()}"
+            
+            # PendingCandidates 형식으로 변환
+            pending_data = {
+                'candidate_id': candidate_id,
+                'basic_info': basic_info,
+                'skills': skills,
+                'work_experience': employee_data.get('work_experience', []),
+                'certifications': employee_data.get('certifications', []),
+                'evaluation_data': employee_data.get('evaluation_data', {}),
+                'verification_questions': employee_data.get('verification_questions', []),
+                'submitted_at': employee_data.get('submitted_at', datetime.utcnow().isoformat())
+            }
+            
+            pending_table.put_item(Item=pending_data)
+            logger.info(f"대기자 생성 완료: {candidate_id}")
+            return pending_data
+        else:
+            # 일반 직원은 Employees 테이블에 저장
+            employees_table.put_item(Item=employee.to_dynamodb())
+            logger.info(f"직원 생성 완료: {user_id}")
+            return employee.to_dynamodb()
     except ClientError as e:
         logger.error(f"DynamoDB 저장 실패: {str(e)}")
         raise Exception(f"데이터베이스 저장에 실패했습니다: {str(e)}")
-    
-    return employee.to_dynamodb()
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:

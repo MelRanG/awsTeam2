@@ -25,6 +25,9 @@ interface Personnel {
 export function PersonnelManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
+  const [allPersonnel, setAllPersonnel] = useState<Personnel[]>([]); // 전체 직원 목록
+  const [currentPage, setCurrentPage] = useState(1); // 현재 페이지
+  const [itemsPerPage] = useState(20); // 페이지당 항목 수
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,7 +51,7 @@ export function PersonnelManagement() {
         availability: 'available' as const, // 기본값
       }));
       
-      setPersonnel(transformedData);
+      setAllPersonnel(transformedData);
       setError(null);
     } catch (err) {
       console.error('직원 목록 조회 실패:', err);
@@ -58,15 +61,45 @@ export function PersonnelManagement() {
     }
   };
 
+  // 필터링된 직원 목록 가져오기
+  const getFilteredPersonnel = () => {
+    if (!searchQuery.trim()) {
+      return allPersonnel;
+    }
+    return allPersonnel.filter((person) =>
+      person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      person.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      person.skills.some((skill) => skill.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  };
+
+  // 현재 페이지의 직원 목록
+  const getCurrentPagePersonnel = () => {
+    const filtered = getFilteredPersonnel();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filtered.slice(startIndex, endIndex);
+  };
+
+  // 전체 페이지 수 계산
+  const totalPages = Math.ceil(getFilteredPersonnel().length / itemsPerPage);
+
+  // 페이지 변경
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 검색어 변경 시 첫 페이지로 이동
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
   useEffect(() => {
     fetchEmployees();
   }, []);
 
-  const filteredPersonnel = personnel.filter((person) =>
-    person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    person.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    person.skills.some((skill) => skill.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredPersonnel = getCurrentPagePersonnel();
 
   const getAvailabilityColor = (availability: Personnel['availability']) => {
     switch (availability) {
@@ -99,7 +132,7 @@ export function PersonnelManagement() {
       >
         <div>
           <h2 className="text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">인력 관리</h2>
-          <p className="text-gray-600">전체 인력 정보를 확인하고 관리하세요 (총 {personnel.length}명)</p>
+          <p className="text-gray-600">전체 인력 정보를 확인하고 관리하세요 (페이지 {currentPage}/{totalPages} - 전체 {getFilteredPersonnel().length}명)</p>
         </div>
         <div className="flex gap-3">
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -313,6 +346,71 @@ export function PersonnelManagement() {
           </Dialog>
             ))
           )}
+        </div>
+      )}
+
+      {/* 페이지네이션 */}
+      {!loading && !error && totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-8">
+          <Button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            variant="outline"
+            className="px-4 py-2"
+          >
+            이전
+          </Button>
+          
+          <div className="flex gap-2">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+              // 현재 페이지 주변 5개만 표시
+              if (
+                page === 1 ||
+                page === totalPages ||
+                (page >= currentPage - 2 && page <= currentPage + 2)
+              ) {
+                return (
+                  <Button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    variant="outline"
+                    style={
+                      currentPage === page
+                        ? {
+                            backgroundColor: '#2563eb',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            borderColor: '#2563eb',
+                          }
+                        : {}
+                    }
+                    className={`px-4 py-2 ${
+                      currentPage === page
+                        ? ""
+                        : "bg-white hover:bg-gray-50 text-gray-700"
+                    }`}
+                  >
+                    {page}
+                  </Button>
+                );
+              } else if (
+                page === currentPage - 3 ||
+                page === currentPage + 3
+              ) {
+                return <span key={page} className="px-2">...</span>;
+              }
+              return null;
+            })}
+          </div>
+
+          <Button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            variant="outline"
+            className="px-4 py-2"
+          >
+            다음
+          </Button>
         </div>
       )}
 

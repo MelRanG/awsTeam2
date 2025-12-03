@@ -15,9 +15,15 @@ print("=" * 60)
 
 # 1. 빌드 폴더 확인
 print("\n1. 빌드 폴더 확인...")
-build_dir = Path('frontend/build')
+# 현재 디렉토리 확인
+current_dir = Path.cwd()
+if current_dir.name == 'frontend':
+    build_dir = Path('build')
+else:
+    build_dir = Path('frontend/build')
+
 if not build_dir.exists():
-    print("  ✗ 빌드 폴더가 없습니다!")
+    print(f"  ✗ 빌드 폴더가 없습니다! (찾는 경로: {build_dir.absolute()})")
     print("  먼저 'cd frontend && npm run build'를 실행하세요.")
     exit(1)
 

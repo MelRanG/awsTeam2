@@ -170,14 +170,16 @@ export function EmployeeRegistrationModal({ open, onClose, onSubmit }: EmployeeR
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent 
+        className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0"
+      >
+        <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             신규 인력 등록
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form id="employee-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
           {/* 기본 정보 */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">기본 정보</h3>
@@ -391,20 +393,22 @@ export function EmployeeRegistrationModal({ open, onClose, onSubmit }: EmployeeR
             </div>
           )}
 
-          {/* 버튼 */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" onClick={onClose} variant="outline" disabled={loading}>
-              취소
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-            >
-              {loading ? '등록 중...' : '등록'}
-            </Button>
-          </div>
         </form>
+        
+        {/* 버튼 - 하단 고정 */}
+        <div className="flex justify-end gap-3 px-6 py-4 border-t flex-shrink-0 bg-white">
+          <Button type="button" onClick={onClose} variant="outline" disabled={loading}>
+            취소
+          </Button>
+          <Button
+            type="submit"
+            form="employee-form"
+            disabled={loading}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+          >
+            {loading ? '등록 중...' : '등록'}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -46,24 +46,24 @@ export default function App() {
                 <p className="text-sm text-gray-500">AI 기반 역량 관리 및 프로젝트 추천</p>
               </div>
             </div>
-            <motion.button 
+            {/* <motion.button 
               whileHover={{ scale: 1.05, rotate: 90 }}
               whileTap={{ scale: 0.95 }}
               className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
             >
               <Settings className="w-5 h-5 text-gray-600" />
-            </motion.button>
+            </motion.button> */}
           </div>
         </div>
       </motion.header>
 
-      <div className="flex">
+      <div className="flex relative">
         {/* Sidebar */}
         <motion.aside 
           initial={{ x: -100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="w-64 bg-white/60 backdrop-blur-xl border-r border-gray-200/50 min-h-[calc(100vh-73px)]"
+          className="w-64 bg-white/60 backdrop-blur-xl border-r border-gray-200/50 sticky top-[73px] h-[calc(100vh-73px)] overflow-y-auto self-start"
         >
           <nav className="p-4 space-y-1">
             {navigation.map((item, index) => {

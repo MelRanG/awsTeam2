@@ -212,18 +212,99 @@ export interface DashboardMetrics {
   total_employees: number;
   active_projects: number;
   available_employees: number;
-  pending_reviews: number;
-  recent_recommendations: {
-    project: string;
-    recommended: number;
-    match_rate: number;
-    status: string;
-  }[];
+  pending_candidates: number;
   top_skills: {
     name: string;
     count: number;
     percentage: number;
   }[];
+  employee_distribution: {
+    by_department: { name: string; count: number }[];
+    by_experience: { name: string; count: number }[];
+    by_role: { name: string; count: number }[];
+  };
+  project_distribution: {
+    by_status: { name: string; count: number }[];
+    by_industry: { name: string; count: number }[];
+    by_budget: { name: string; count: number }[];
+  };
+  evaluation_stats: {
+    by_status: { name: string; count: number }[];
+    by_type: { name: string; count: number }[];
+    average_score: number;
+    approval_rate: number;
+    total_evaluations: number;
+  };
+  pending_candidates_detail: {
+    total: number;
+    by_wait_period: { name: string; count: number }[];
+    average_wait_days: number;
+  };
+  action_required: {
+    long_waiting_employees: number;
+    delayed_evaluations: number;
+    verification_needed: number;
+  };
+  skill_competency: {
+    rare_skills: { name: string; count: number }[];
+    multi_skilled_count: number;
+    top_proficiency_skills: { name: string; avg_level: number; count: number }[];
+    total_unique_skills: number;
+  };
+  career_growth: {
+    average_years: number;
+    senior_count: number;
+    senior_ratio: number;
+    skill_growth_rate: number;
+  };
+  project_experience: {
+    average_projects: number;
+    no_experience_count: number;
+    multi_industry_count: number;
+    leader_experience_count: number;
+  };
+  utilization: {
+    assigned_count: number;
+    available_count: number;
+    utilization_rate: number;
+  };
+  education_certification: {
+    education_distribution: { name: string; count: number }[];
+    average_certifications: number;
+    no_certification_count: number;
+  };
+  portfolio_health: {
+    role_distribution: { name: string; count: number }[];
+    skill_diversity_index: number;
+    unique_skills_count: number;
+  };
+  employee_quality: {
+    advanced_tech_count: number;
+    advanced_tech_ratio: number;
+    skill_level_distribution: { name: string; count: number }[];
+    performance_record_count: number;
+    performance_ratio: number;
+    multi_role_count: number;
+  };
+  domain_expertise: {
+    multi_domain_experts: number;
+    average_domain_years: number;
+    top_domains: { name: string; count: number }[];
+    total_domains: number;
+  };
+  evaluation_scores: {
+    average_score: number;
+    score_distribution: { name: string; count: number }[];
+    top_roles_by_score: { name: string; avg_score: number }[];
+    score_by_experience: { name: string; avg_score: number }[];
+    high_performers: number;
+    low_performers: number;
+  };
+  skill_gaps: {
+    top_skill_gaps: { skill: string; gap: number; demand: number; supply: number }[];
+    total_skill_gaps: number;
+    training_needed_count: number;
+  };
 }
 
 // 이력서 업로드 응답

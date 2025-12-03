@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { ResumeEvaluationModal } from './ResumeEvaluationModal';
+import { API_BASE_URL } from '../config/api';
 
 interface ResumeUploadModalProps {
   isOpen: boolean;
@@ -98,8 +99,7 @@ export function ResumeUploadModal({ isOpen, onClose, onUploadSuccess }: ResumeUp
 
     try {
       // 1. Presigned URL 요청
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://your-api-gateway-url';
-      const response = await fetch(`${apiUrl}/resume/upload-url`, {
+      const response = await fetch(`${API_BASE_URL}/resume/upload-url`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -135,9 +135,9 @@ export function ResumeUploadModal({ isOpen, onClose, onUploadSuccess }: ResumeUp
       // 3. 이력서 파싱 및 평가 요청
       console.log('=== 이력서 분석 시작 ===');
       console.log('파일 키:', file_key);
-      console.log('API URL:', `${apiUrl}/resume/parse`);
+      console.log('API URL:', `${API_BASE_URL}/resume/parse`);
       
-      const evaluationResponse = await fetch(`${apiUrl}/resume/parse`, {
+      const evaluationResponse = await fetch(`${API_BASE_URL}/resume/parse`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -184,10 +184,8 @@ export function ResumeUploadModal({ isOpen, onClose, onUploadSuccess }: ResumeUp
 
   const handleApprove = async (data: EvaluationData) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://your-api-gateway-url';
-      
       // 직원 등록 API 호출
-      const response = await fetch(`${apiUrl}/employees`, {
+      const response = await fetch(`${API_BASE_URL}/employees`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

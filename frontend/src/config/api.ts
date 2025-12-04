@@ -198,7 +198,15 @@ export interface Project {
   project_name: string;
   status: string;
   start_date: string;
+  end_date: string;
   required_skills: string[];
+  client_industry?: string;
+  assigned_members?: Array<{
+    employee_id: string;
+    name: string;
+    role: string;
+  }>;
+  required_members?: number;
 }
 
 export interface ProjectsListResponse {

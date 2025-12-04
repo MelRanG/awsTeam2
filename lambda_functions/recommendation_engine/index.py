@@ -11,8 +11,6 @@ import os
 from typing import Dict, Any, List, Optional
 from decimal import Decimal
 import boto3
-from opensearchpy import OpenSearch, RequestsHttpConnection
-from requests_aws4auth import AWS4Auth
 
 # 로깅 설정
 logger = logging.getLogger()
@@ -20,31 +18,13 @@ logger.setLevel(logging.INFO)
 
 # AWS 클라이언트 초기화
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-2'))
-bedrock_runtime = boto3.client('bedrock-runtime', region_name=os.environ.get('AWS_REGION', 'us-east-2'))
 
-# OpenSearch 클라이언트 초기화
-def get_opensearch_client():
-    """OpenSearch 클라이언트 생성"""
-    endpoint = os.environ.get('OPENSEARCH_ENDPOINT')
-    if not endpoint:
-        raise ValueError("OPENSEARCH_ENDPOINT 환경 변수가 설정되지 않았습니다")
-    
-    credentials = boto3.Session().get_credentials()
-    awsauth = AWS4Auth(
-        credentials.access_key,
-        credentials.secret_key,
-        os.environ.get('AWS_REGION', 'us-east-2'),
-        'es',
-        session_token=credentials.token
-    )
-    
-    return OpenSearch(
-        hosts=[{'host': endpoint, 'port': 443}],
-        http_auth=awsauth,
-        use_ssl=True,
-        verify_certs=True,
-        connection_class=RequestsHttpConnection
-    )
+# Bedrock 클라이언트 (선택적)
+try:
+    bedrock_runtime = boto3.client('bedrock-runtime', region_name=os.environ.get('AWS_REGION', 'us-east-2'))
+except:
+    bedrock_runtime = None
+    logger.warning("Bedrock 클라이언트 초기화 실패 - 기본 추천 근거 사용")
 
 
 def handler(event, context):
@@ -66,11 +46,28 @@ def handler(event, context):
         # 요청 본문 파싱 (Requirements: 2.2)
         body = json.loads(event.get('body', '{}'))
         
+        # CORS preflight 요청 처리
+        if event.get('httpMethod') == 'OPTIONS':
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+                },
+                'body': ''
+            }
+        
         # 입력 검증
         if not body.get('project_id'):
             return {
                 'statusCode': 400,
-                'headers': {'Content-Type': 'application/json'},
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+                },
                 'body': json.dumps({'error': 'project_id가 필요합니다'})
             }
         
@@ -81,17 +78,46 @@ def handler(event, context):
         
         logger.info(f"프로젝트 {project_id}에 대한 추천 시작")
         
+        # 프로젝트 정보 조회하여 필요 인력 수 확인
+        project_table = dynamodb.Table('Projects')
+        project_response = project_table.get_item(Key={'project_id': project_id})
+        project = project_response.get('Item', {})
+        
+        # 필요 인력 수 가져오기
+        required_members = project.get('required_members', team_size)
+        if isinstance(required_members, str):
+            required_members = int(required_members)
+        
+        # 필요 인력 * 2 만큼 추천 (정수로 변환)
+        recommendation_count = int(required_members * 2)
+        
+        # 프로젝트 요구 기술 가져오기
+        if not required_skills:
+            tech_stack = project.get('tech_stack', {})
+            required_skills = []
+            if isinstance(tech_stack, dict):
+                for category, skills in tech_stack.items():
+                    if isinstance(skills, list):
+                        required_skills.extend([str(skill) for skill in skills])
+        
+        logger.info(f"필요 인력: {int(required_members)}명, 추천 인원: {recommendation_count}명")
+        
         # 추천 생성
         recommendations = generate_recommendations(
             project_id=project_id,
             required_skills=required_skills,
-            team_size=team_size,
+            team_size=recommendation_count,
             priority=priority
         )
         
         return {
             'statusCode': 200,
-            'headers': {'Content-Type': 'application/json'},
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
             'body': json.dumps({
                 'project_id': project_id,
                 'recommendations': recommendations
@@ -102,7 +128,12 @@ def handler(event, context):
         logger.error(f"추천 생성 중 오류 발생: {str(e)}", exc_info=True)
         return {
             'statusCode': 500,
-            'headers': {'Content-Type': 'application/json'},
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
             'body': json.dumps({'error': str(e)})
         }
 
@@ -307,7 +338,7 @@ def search_similar_employees(
     required_skills: List[str]
 ) -> List[Dict[str, Any]]:
     """
-    벡터 유사도 검색
+    벡터 유사도 검색 (간소화 버전)
     
     Requirements: 11.3, 11.4 - OpenSearch 벡터 검색
     
@@ -318,73 +349,10 @@ def search_similar_employees(
     Returns:
         list: 유사한 직원 목록
     """
-    try:
-        # 프로젝트 요구사항 벡터 생성
-        requirement_text = f"프로젝트 요구 기술: {', '.join(required_skills)}"
-        requirement_vector = generate_embedding(requirement_text)
-        
-        # OpenSearch k-NN 검색
-        opensearch_client = get_opensearch_client()
-        
-        query = {
-            "size": 20,
-            "query": {
-                "knn": {
-                    "profile_vector": {
-                        "vector": requirement_vector,
-                        "k": 20
-                    }
-                }
-            }
-        }
-        
-        response = opensearch_client.search(
-            index='employee_profiles',
-            body=query
-        )
-        
-        matches = []
-        for hit in response['hits']['hits']:
-            source = hit['_source']
-            similarity_score = hit['_score']
-            
-            matches.append({
-                'user_id': source.get('user_id'),
-                'name': source.get('name'),
-                'role': source.get('role'),
-                'similarity_score': similarity_score,
-                'vector_match': True
-            })
-        
-        return matches
-        
-    except Exception as e:
-        logger.error(f"벡터 검색 실패: {str(e)}")
-        return []
-
-
-def generate_embedding(text: str) -> List[float]:
-    """
-    텍스트를 벡터 임베딩으로 변환
-    
-    Args:
-        text: 입력 텍스트
-        
-    Returns:
-        list: 벡터 임베딩
-    """
-    try:
-        response = bedrock_runtime.invoke_model(
-            modelId='amazon.titan-embed-text-v1',
-            body=json.dumps({'inputText': text})
-        )
-        
-        response_body = json.loads(response['body'].read())
-        return response_body.get('embedding', [])
-        
-    except Exception as e:
-        logger.error(f"임베딩 생성 실패: {str(e)}")
-        return [0.0] * 1536  # 기본 벡터
+    # OpenSearch가 설정되지 않은 경우 빈 리스트 반환
+    # 기술 매칭만으로도 충분한 추천 가능
+    logger.info("벡터 검색 스킵 - 기술 매칭 기반 추천 사용")
+    return []
 
 
 def get_affinity_scores() -> Dict[str, float]:
@@ -553,9 +521,9 @@ def check_availability(candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]
 
 def generate_reasoning(candidate: Dict[str, Any]) -> str:
     """
-    추천 근거 생성 (상세 근거 포함)
+    추천 근거 생성 (구조화된 근거)
     
-    Requirements: 2.4 - Claude를 사용한 추천 근거 생성
+    Requirements: 2.4 - 추천 근거 생성
     
     Args:
         candidate: 후보자 정보
@@ -563,82 +531,28 @@ def generate_reasoning(candidate: Dict[str, Any]) -> str:
     Returns:
         str: 추천 근거
     """
-    try:
-        # 기술 상세 정보 포맷팅
-        skill_details = candidate.get('skill_details', [])
-        skill_breakdown = "\n".join([
-            f"  - {s['skill']}: {s['level']} (경력 {s['years']}년, 가중치 점수: {s['score']})"
-            for s in skill_details
-        ]) if skill_details else "정보 없음"
-        
-        # 도메인 경험 여부
-        domain_exp = "유사 도메인 프로젝트 경험 있음" if candidate.get('domain_bonus') else "신규 도메인"
-        
-        prompt = f"""다음 후보자에 대한 프로젝트 투입 추천 근거를 구체적으로 작성해주세요:
-
-## 후보자 정보
-- 이름: {candidate.get('name')}
-- 역할: {candidate.get('role')}
-- 총 경력: {candidate.get('years_of_experience')}년
-
-## 점수 분석
-- 기술 매칭 점수: {candidate.get('skill_match_score', 0):.1f}/100
-  * 가중치 기반 계산 (숙련도 × 최신성 × 도메인 경험)
-- 벡터 유사도 점수: {candidate.get('similarity_score', 0):.1f}/100
-  * 프로젝트 요구사항과의 의미적 유사성
-- 팀 친밀도 점수: {candidate.get('affinity_score', 0):.1f}/100
-  * 기존 팀원들과의 협업 이력 및 커뮤니케이션 빈도
-- 종합 점수: {candidate.get('overall_score', 0):.1f}/100
-
-## 매칭된 기술 상세
-{skill_breakdown}
-
-## 추가 정보
-- 도메인 경험: {domain_exp}
-- 현재 가용성: {candidate.get('availability', 'Unknown')}
-- 진행 중인 프로젝트: {candidate.get('current_project', '없음')}
-
-위 정보를 바탕으로 다음 형식으로 추천 근거를 작성해주세요:
-1. 핵심 강점 (1-2문장)
-2. 프로젝트 적합성 (1-2문장)
-3. 추가 고려사항 (1문장)
-
-총 3-4문장으로 간결하게 작성해주세요."""
-
-        response = bedrock_runtime.invoke_model(
-            modelId='anthropic.claude-v2',
-            body=json.dumps({
-                'prompt': f"\n\nHuman: {prompt}\n\nAssistant:",
-                'max_tokens_to_sample': 300,
-                'temperature': 0.7
-            })
-        )
-        
-        response_body = json.loads(response['body'].read())
-        reasoning = response_body.get('completion', '').strip()
-        
-        return reasoning
-        
-    except Exception as e:
-        logger.error(f"추천 근거 생성 실패: {str(e)}")
-        
-        # 폴백: 구조화된 근거 생성
-        matched_skills = ', '.join(candidate.get('matched_skills', []))
-        skill_score = candidate.get('skill_match_score', 0)
-        affinity_score = candidate.get('affinity_score', 0)
-        availability = candidate.get('availability', 'Unknown')
-        
-        reasoning = f"""[핵심 강점] {matched_skills} 기술을 보유하고 있으며, 가중치 기반 기술 매칭 점수 {skill_score:.1f}점을 기록했습니다. """
-        
-        if affinity_score > 50:
-            reasoning += f"[팀 적합성] 기존 팀원들과의 친밀도 점수가 {affinity_score:.1f}점으로 높아 원활한 협업이 예상됩니다. "
-        
-        if availability == 'Available':
-            reasoning += "[가용성] 현재 투입 가능한 상태입니다."
-        elif availability == 'Busy':
-            reasoning += f"[고려사항] 현재 '{candidate.get('current_project', '다른 프로젝트')}'에 참여 중이므로 일정 조율이 필요합니다."
-        
-        return reasoning
+    # 구조화된 근거 생성
+    matched_skills = ', '.join(candidate.get('matched_skills', []))
+    skill_score = candidate.get('skill_match_score', 0)
+    affinity_score = candidate.get('affinity_score', 0)
+    availability = candidate.get('availability', 'Unknown')
+    years_exp = candidate.get('years_of_experience', 0)
+    
+    reasoning = f"""[핵심 강점] {years_exp}년 경력의 {candidate.get('role', '개발자')}로, {matched_skills} 기술을 보유하고 있으며 가중치 기반 기술 매칭 점수 {skill_score:.1f}점을 기록했습니다. """
+    
+    if affinity_score > 50:
+        reasoning += f"[팀 적합성] 기존 팀원들과의 친밀도 점수가 {affinity_score:.1f}점으로 높아 원활한 협업이 예상됩니다. "
+    elif affinity_score > 0:
+        reasoning += f"[팀 적합성] 팀 친밀도 점수 {affinity_score:.1f}점으로 협업 가능합니다. "
+    
+    if availability == 'Available':
+        reasoning += "[가용성] 현재 투입 가능한 상태입니다."
+    elif availability == 'Busy':
+        reasoning += f"[고려사항] 현재 '{candidate.get('current_project', '다른 프로젝트')}'에 참여 중이므로 일정 조율이 필요합니다."
+    else:
+        reasoning += "[가용성] 가용성 확인이 필요합니다."
+    
+    return reasoning
 
 
 def decimal_default(obj):

@@ -12,6 +12,13 @@ type Tab = 'dashboard' | 'personnel' | 'projects' | 'recommendation' | 'domain' 
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  
+  // 프로젝트 관리에서 인력 추천으로 이동하는 함수
+  const navigateToRecommendation = (projectId: string) => {
+    setSelectedProjectId(projectId);
+    setActiveTab('recommendation');
+  };
 
   const navigation = [
     { id: 'dashboard' as Tab, name: '대시보드', icon: BarChart3 },
@@ -111,8 +118,8 @@ export default function App() {
             >
               {activeTab === 'dashboard' && <Dashboard />}
               {activeTab === 'personnel' && <PersonnelManagement />}
-              {activeTab === 'projects' && <ProjectManagement />}
-              {activeTab === 'recommendation' && <PersonnelRecommendation />}
+              {activeTab === 'projects' && <ProjectManagement onNavigateToRecommendation={navigateToRecommendation} />}
+              {activeTab === 'recommendation' && <PersonnelRecommendation preselectedProjectId={selectedProjectId} />}
               {activeTab === 'domain' && <DomainAnalysis />}
               {activeTab === 'evaluation' && <PersonnelEvaluation />}
             </motion.div>

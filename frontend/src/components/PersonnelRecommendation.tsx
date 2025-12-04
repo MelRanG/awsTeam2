@@ -25,7 +25,11 @@ interface Recommendation {
   availability?: 'available' | 'busy' | 'pending';
 }
 
-export function PersonnelRecommendation() {
+interface PersonnelRecommendationProps {
+  preselectedProjectId?: string | null;
+}
+
+export function PersonnelRecommendation({ preselectedProjectId }: PersonnelRecommendationProps) {
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
@@ -45,6 +49,17 @@ export function PersonnelRecommendation() {
   useEffect(() => {
     loadProjects();
   }, []);
+  
+  // 프로젝트가 미리 선택된 경우 자동으로 분석 시작
+  useEffect(() => {
+    if (preselectedProjectId && projects.length > 0) {
+      setSelectedProject(preselectedProjectId);
+      // 약간의 딜레이 후 자동 분석 시작
+      setTimeout(() => {
+        handleAnalyzeWithProject(preselectedProjectId);
+      }, 500);
+    }
+  }, [preselectedProjectId, projects]);
 
   const loadProjects = async () => {
     try {
@@ -65,8 +80,8 @@ export function PersonnelRecommendation() {
     }
   };
 
-  const handleAnalyze = async () => {
-    if (!selectedProject) {
+  const handleAnalyzeWithProject = async (projectId: string) => {
+    if (!projectId) {
       setError('프로젝트를 선택해주세요.');
       return;
     }
@@ -76,7 +91,7 @@ export function PersonnelRecommendation() {
       setError(null);
       
       // API 호출하여 추천 결과 가져오기
-      const response = await api.recommendations({ project_id: selectedProject });
+      const response = await api.recommendations({ project_id: projectId });
       
       // 응답 데이터를 컴포넌트 형식에 맞게 변환
       const formattedRecommendations: Recommendation[] = response.recommendations.map((rec: any) => ({
@@ -101,6 +116,10 @@ export function PersonnelRecommendation() {
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const handleAnalyze = async () => {
+    await handleAnalyzeWithProject(selectedProject);
   };
 
   // 배정 모달 열기

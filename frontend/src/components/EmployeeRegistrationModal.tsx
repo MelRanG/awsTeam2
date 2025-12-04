@@ -171,7 +171,8 @@ export function EmployeeRegistrationModal({ open, onClose, onSubmit }: EmployeeR
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent 
-        className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0"
+        className="!max-w-3xl !h-[80vh] !overflow-hidden !flex !flex-col !p-0 !grid-cols-1"
+        style={{ display: 'flex', flexDirection: 'column', height: '80vh', maxHeight: '80vh' }}
       >
         <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
@@ -179,7 +180,8 @@ export function EmployeeRegistrationModal({ open, onClose, onSubmit }: EmployeeR
           </DialogTitle>
         </DialogHeader>
 
-        <form id="employee-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <form id="employee-form" onSubmit={handleSubmit} className="space-y-6">
           {/* 기본 정보 */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">기본 정보</h3>
@@ -393,7 +395,8 @@ export function EmployeeRegistrationModal({ open, onClose, onSubmit }: EmployeeR
             </div>
           )}
 
-        </form>
+          </form>
+        </div>
         
         {/* 버튼 - 하단 고정 */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t flex-shrink-0 bg-white">

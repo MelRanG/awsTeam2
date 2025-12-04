@@ -22,7 +22,11 @@ interface Project {
   matchRate?: number;
 }
 
-export function ProjectManagement() {
+interface ProjectManagementProps {
+  onNavigateToRecommendation?: (projectId: string) => void;
+}
+
+export function ProjectManagement({ onNavigateToRecommendation }: ProjectManagementProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,15 +53,22 @@ export function ProjectManagement() {
           return {
             id: proj.project_id,
             name: proj.project_name,
-            client: '고객사', // 기본값 (DB에 없는 경우)
+            client: proj.client_industry || '고객사',
             status,
             requiredSkills: proj.required_skills || [],
-            assignedMembers: 0, // 기본값 (DB에 없는 경우)
-            requiredMembers: 5, // 기본값
+            assignedMembers: proj.assigned_members?.length || 0,
+            requiredMembers: proj.required_members || 5,
             startDate: proj.start_date || '미정',
-            endDate: '미정', // 기본값
+            endDate: proj.end_date || '미정',
             matchRate: undefined,
           };
+        });
+        
+        // 시작 날짜 내림차순으로 정렬 (최신 프로젝트가 먼저)
+        transformedData.sort((a, b) => {
+          if (a.startDate === '미정') return 1;
+          if (b.startDate === '미정') return -1;
+          return b.startDate.localeCompare(a.startDate);
         });
         
         setProjects(transformedData);
@@ -120,16 +131,24 @@ export function ProjectManagement() {
         return {
           id: proj.project_id,
           name: proj.project_name,
-          client: '고객사',
+          client: proj.client_industry || '고객사',
           status,
           requiredSkills: proj.required_skills || [],
-          assignedMembers: 0,
-          requiredMembers: 5,
+          assignedMembers: proj.assigned_members?.length || 0,
+          requiredMembers: proj.required_members || 5,
           startDate: proj.start_date || '미정',
-          endDate: '미정',
+          endDate: proj.end_date || '미정',
           matchRate: undefined,
         };
       });
+      
+      // 시작 날짜 내림차순으로 정렬
+      transformedData.sort((a, b) => {
+        if (a.startDate === '미정') return 1;
+        if (b.startDate === '미정') return -1;
+        return b.startDate.localeCompare(a.startDate);
+      });
+      
       setProjects(transformedData);
     } catch (err) {
       console.error('프로젝트 등록 실패:', err);
@@ -140,9 +159,12 @@ export function ProjectManagement() {
 
   // AI 인력 추천 받기 핸들러
   const handleGetRecommendations = (projectId: string) => {
-    // 추천 기능은 인력 추천 탭에서 프로젝트 ID를 선택하여 사용
-    toast.info('인력 추천 탭으로 이동하여 프로젝트를 선택해주세요.');
-    console.log('프로젝트 ID:', projectId);
+    if (onNavigateToRecommendation) {
+      onNavigateToRecommendation(projectId);
+      toast.success('인력 추천 페이지로 이동합니다');
+    } else {
+      toast.info('인력 추천 탭으로 이동하여 프로젝트를 선택해주세요.');
+    }
   };
 
   return (
@@ -309,7 +331,7 @@ export function ProjectManagement() {
                   </div>
                 </div>
 
-                {project.assignedMembers < project.requiredMembers && (
+                {project.status === 'in-progress' && project.assignedMembers < project.requiredMembers && (
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}

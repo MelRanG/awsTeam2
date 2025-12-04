@@ -107,16 +107,31 @@ def fetch_all_projects() -> List[Dict[str, Any]]:
                     if isinstance(skills, list):
                         required_skills.extend([str(skill) for skill in skills])
             
+            # assigned_members 처리
+            assigned_members = item.get('assigned_members', [])
+            if not isinstance(assigned_members, list):
+                assigned_members = []
+            
+            # required_members 처리 (문자열일 수 있음)
+            required_members = item.get('required_members', 5)
+            if isinstance(required_members, str):
+                try:
+                    required_members = int(required_members)
+                except:
+                    required_members = 5
+            
             # 필요한 정보만 추출
             project = {
                 'project_id': item.get('project_id'),
                 'project_name': item.get('project_name', ''),
-                'status': 'active',  # 기본값
+                'status': item.get('status', 'active'),
                 'start_date': start_date,
                 'end_date': end_date,
                 'required_skills': required_skills,
                 'description': item.get('description', ''),
-                'client_industry': item.get('client_industry', '')
+                'client_industry': item.get('client_industry', ''),
+                'assigned_members': assigned_members,
+                'required_members': required_members
             }
             
             projects.append(project)

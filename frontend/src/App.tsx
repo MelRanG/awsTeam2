@@ -23,10 +23,10 @@ export default function App() {
   const navigation = [
     { id: 'dashboard' as Tab, name: '대시보드', icon: BarChart3 },
     { id: 'personnel' as Tab, name: '인력 관리', icon: Users },
-    { id: 'projects' as Tab, name: '프로젝트 관리', icon: Briefcase },
-    { id: 'recommendation' as Tab, name: '인력 추천', icon: TrendingUp },
-    { id: 'domain' as Tab, name: '도메인 분석', icon: TrendingUp },
     { id: 'evaluation' as Tab, name: '인력 평가', icon: UserPlus },
+    { id: 'recommendation' as Tab, name: '인력 추천', icon: TrendingUp },
+    { id: 'projects' as Tab, name: '프로젝트 관리', icon: Briefcase },
+    { id: 'domain' as Tab, name: '도메인 분석', icon: TrendingUp },
   ];
 
   return (

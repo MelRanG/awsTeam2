@@ -61,21 +61,37 @@ def get_active_projects() -> int:
 def get_available_employees() -> int:
     """투입 대기 인력 수 조회 (현재 프로젝트에 배정되지 않은 직원)"""
     try:
-        table = dynamodb.Table(EMPLOYEES_TABLE)
-        # currentProject가 없거나 None인 직원 카운트
-        response = table.scan()
-        items = response.get('Items', [])
+        # 전체 직원 수 조회
+        emp_table = dynamodb.Table(EMPLOYEES_TABLE)
+        emp_response = emp_table.scan(Select='COUNT')
+        total_employees = emp_response.get('Count', 0)
         
-        # currentProject가 없거나 None인 직원 필터링
-        available_count = 0
-        for item in items:
-            current_project = item.get('currentProject')
-            if current_project is None or current_project == '':
-                available_count += 1
+        # 프로젝트에 배정된 직원 수 조회
+        proj_table = dynamodb.Table(PROJECTS_TABLE)
+        proj_response = proj_table.scan()
+        projects = proj_response.get('Items', [])
+        
+        assigned_employees = set()
+        for project in projects:
+            # 진행 중인 프로젝트만 확인
+            if project.get('status') == 'in-progress':
+                team_members = project.get('team_members', [])
+                for member in team_members:
+                    if isinstance(member, dict):
+                        employee_id = member.get('employee_id') or member.get('user_id')
+                        if employee_id:
+                            assigned_employees.add(employee_id)
+        
+        # 투입 대기 인력 = 전체 직원 - 배정된 직원
+        available_count = total_employees - len(assigned_employees)
+        
+        print(f"Total employees: {total_employees}, Assigned: {len(assigned_employees)}, Available: {available_count}")
         
         return available_count
     except Exception as e:
         print(f"Error getting available employees: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return 0
 
 
@@ -97,6 +113,8 @@ def get_employee_distribution() -> Dict[str, Any]:
         response = table.scan()
         items = response.get('Items', [])
         
+        print(f"Total employees for distribution: {len(items)}")
+        
         # 부서별 분포
         department_dist = {}
         # 경력 분포
@@ -110,9 +128,20 @@ def get_employee_distribution() -> Dict[str, Any]:
             department_dist[dept] = department_dist.get(dept, 0) + 1
             
             # 경력별
-            years = employee.get('basic_info', {}).get('years_of_experience', 0)
-            if isinstance(years, Decimal):
-                years = float(years)
+            basic_info = employee.get('basic_info', {})
+            years = basic_info.get('years_of_experience', 0)
+            
+            # 타입 변환 (Decimal, str, int 모두 처리)
+            try:
+                if isinstance(years, Decimal):
+                    years = float(years)
+                elif isinstance(years, str):
+                    years = float(years) if years else 0
+                elif not isinstance(years, (int, float)):
+                    years = 0
+            except (ValueError, TypeError):
+                years = 0
+            
             if years < 3:
                 experience_dist['신입'] += 1
             elif years < 6:
@@ -123,16 +152,23 @@ def get_employee_distribution() -> Dict[str, Any]:
                 experience_dist['리드'] += 1
             
             # 역할별
-            role = employee.get('basic_info', {}).get('role', '미지정')
+            role = basic_info.get('role', '미지정')
             role_dist[role] = role_dist.get(role, 0) + 1
         
-        return {
+        print(f"Experience distribution: {experience_dist}")
+        print(f"Role distribution count: {len(role_dist)}")
+        
+        result = {
             'by_department': [{'name': k, 'count': v} for k, v in department_dist.items()],
-            'by_experience': [{'name': k, 'count': v} for k, v in experience_dist.items()],
+            'by_experience': [{'name': k, 'count': v} for k, v in experience_dist.items() if v > 0],
             'by_role': [{'name': k, 'count': v} for k, v in role_dist.items()]
         }
+        
+        return result
     except Exception as e:
         print(f"Error getting employee distribution: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {'by_department': [], 'by_experience': [], 'by_role': []}
 
 
@@ -280,17 +316,28 @@ def get_action_required_items() -> Dict[str, Any]:
     try:
         from datetime import datetime, timedelta
         
-        # 장기 대기 인력 (3개월 이상 프로젝트 미배정)
+        # 장기 대기 인력 (프로젝트 미배정)
+        # 전체 직원 수
         emp_table = dynamodb.Table(EMPLOYEES_TABLE)
-        emp_response = emp_table.scan()
-        employees = emp_response.get('Items', [])
+        emp_response = emp_table.scan(Select='COUNT')
+        total_employees = emp_response.get('Count', 0)
         
-        long_waiting = 0
-        for emp in employees:
-            if not emp.get('currentProject'):
-                # 실제로는 마지막 프로젝트 종료일을 확인해야 하지만, 
-                # 현재는 currentProject가 없는 경우로 판단
-                long_waiting += 1
+        # 프로젝트에 배정된 직원 수 조회
+        proj_table = dynamodb.Table(PROJECTS_TABLE)
+        proj_response = proj_table.scan()
+        projects = proj_response.get('Items', [])
+        
+        assigned_employees = set()
+        for project in projects:
+            if project.get('status') == 'in-progress':
+                team_members = project.get('team_members', [])
+                for member in team_members:
+                    if isinstance(member, dict):
+                        employee_id = member.get('employee_id') or member.get('user_id')
+                        if employee_id:
+                            assigned_employees.add(employee_id)
+        
+        long_waiting = total_employees - len(assigned_employees)
         
         # 평가 지연 건 (제출 후 7일 이상 pending)
         eval_table = dynamodb.Table(EVALUATIONS_TABLE)
@@ -483,20 +530,29 @@ def get_project_experience_analysis() -> Dict[str, Any]:
 def get_utilization_analysis() -> Dict[str, Any]:
     """인력 활용도 분석"""
     try:
-        table = dynamodb.Table(EMPLOYEES_TABLE)
-        response = table.scan()
-        items = response.get('Items', [])
+        # 전체 직원 수
+        emp_table = dynamodb.Table(EMPLOYEES_TABLE)
+        emp_response = emp_table.scan(Select='COUNT')
+        total_employees = emp_response.get('Count', 0)
         
-        assigned = 0
-        available = 0
+        # 프로젝트에 배정된 직원 수 조회
+        proj_table = dynamodb.Table(PROJECTS_TABLE)
+        proj_response = proj_table.scan()
+        projects = proj_response.get('Items', [])
         
-        for employee in items:
-            if employee.get('currentProject'):
-                assigned += 1
-            else:
-                available += 1
+        assigned_employees = set()
+        for project in projects:
+            if project.get('status') == 'in-progress':
+                team_members = project.get('team_members', [])
+                for member in team_members:
+                    if isinstance(member, dict):
+                        employee_id = member.get('employee_id') or member.get('user_id')
+                        if employee_id:
+                            assigned_employees.add(employee_id)
         
-        utilization_rate = round((assigned / len(items)) * 100, 1) if len(items) > 0 else 0
+        assigned = len(assigned_employees)
+        available = total_employees - assigned
+        utilization_rate = round((assigned / total_employees) * 100, 1) if total_employees > 0 else 0
         
         return {
             'assigned_count': assigned,
@@ -505,6 +561,8 @@ def get_utilization_analysis() -> Dict[str, Any]:
         }
     except Exception as e:
         print(f"Error in utilization analysis: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {'assigned_count': 0, 'available_count': 0, 'utilization_rate': 0}
 
 
@@ -852,8 +910,18 @@ def get_evaluation_score_analysis() -> Dict[str, Any]:
             
             # 경력별
             years = employee.get('basic_info', {}).get('years_of_experience', 0)
-            if isinstance(years, Decimal):
-                years = float(years)
+            
+            # 타입 변환
+            try:
+                if isinstance(years, Decimal):
+                    years = float(years)
+                elif isinstance(years, str):
+                    years = float(years) if years else 0
+                elif not isinstance(years, (int, float)):
+                    years = 0
+            except (ValueError, TypeError):
+                years = 0
+            
             if years < 3:
                 score_by_experience['신입'].append(score)
             elif years < 6:

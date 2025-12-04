@@ -174,127 +174,64 @@ export function Dashboard() {
         })}
       </div>
 
-      {/* 새로운 인력 분석 지표들 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 기술 역량 분석 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}>
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg h-[320px] flex flex-col">
-            <CardHeader className="flex-shrink-0">
-              <CardTitle className="text-purple-700 font-bold text-lg flex items-center gap-2">
-                <Award className="w-5 h-5" />
-                기술 역량 분석
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 flex-1 overflow-auto">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
-                  <p className="text-xs text-gray-600 mb-1">다재다능 인력</p>
-                  <p className="text-2xl font-bold text-purple-600">{metrics.skill_competency?.multi_skilled_count || 0}명</p>
-                  <p className="text-xs text-gray-500 mt-1">5개 이상 기술</p>
-                </div>
-                <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
-                  <p className="text-xs text-gray-600 mb-1">고유 기술</p>
-                  <p className="text-2xl font-bold text-blue-600">{metrics.skill_competency?.total_unique_skills || 0}개</p>
-                  <p className="text-xs text-gray-500 mt-1">전체 보유</p>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-700 mb-2">희소 기술 (3명 이하)</p>
-                <div className="flex flex-wrap gap-2">
-                  {(metrics.skill_competency?.rare_skills || []).slice(0, 5).map((skill, idx) => (
-                    <Badge key={idx} variant="outline" className="text-xs border-purple-200 text-purple-700">{skill.name} ({skill.count})</Badge>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* 경력 & 성장 분석 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}>
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg h-[320px] flex flex-col">
-            <CardHeader className="flex-shrink-0">
-              <CardTitle className="text-green-700 font-bold text-lg flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                경력 & 성장
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 flex-1 overflow-auto">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
-                  <p className="text-xs text-gray-600 mb-1">평균 경력</p>
-                  <p className="text-2xl font-bold text-green-600">{metrics.career_growth?.average_years || 0}년</p>
-                </div>
-                <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl">
-                  <p className="text-xs text-gray-600 mb-1">시니어 비율</p>
-                  <p className="text-2xl font-bold text-blue-600">{metrics.career_growth?.senior_ratio || 0}%</p>
-                </div>
-              </div>
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <p className="text-xs text-gray-600 mb-1">시니어 인력 (10년 이상)</p>
-                <p className="text-xl font-bold text-gray-900">{metrics.career_growth?.senior_count || 0}명</p>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* 프로젝트 참여 이력 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }}>
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg h-[320px] flex flex-col">
-            <CardHeader className="flex-shrink-0">
-              <CardTitle className="text-indigo-700 font-bold text-lg flex items-center gap-2">
-                <Target className="w-5 h-5" />
-                프로젝트 경험
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 flex-1 overflow-auto">
-              {metrics.project_experience && (
-                <>
-                  <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl">
-                    <p className="text-xs text-gray-600 mb-1">평균 프로젝트 수</p>
-                    <p className="text-2xl font-bold text-indigo-600">{metrics.project_experience.average_projects}개</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="p-3 bg-yellow-50 rounded-lg text-center">
-                      <p className="text-xs text-gray-600 mb-1">미참여</p>
-                      <p className="text-lg font-bold text-yellow-600">{metrics.project_experience.no_experience_count}</p>
-                    </div>
-                    <div className="p-3 bg-blue-50 rounded-lg text-center">
-                      <p className="text-xs text-gray-600 mb-1">리더 경험</p>
-                      <p className="text-lg font-bold text-blue-600">{metrics.project_experience.leader_experience_count}</p>
-                    </div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* 인력 활용도, 학력 & 자격증, 포트폴리오 건강도 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* 인력활용도, 기술역량분석, 학력&자격증 - 한 줄로 배치 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         {/* 인력 활용도 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.8 }}>
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg h-[320px] flex flex-col">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="flex">
+          <Card className="border-0 shadow-lg h-full w-full flex flex-col" style={{ backgroundColor: '#fed7aa' }}>
             <CardHeader className="flex-shrink-0">
-              <CardTitle className="text-orange-700 font-bold text-lg flex items-center gap-2">
+              <CardTitle className="text-orange-900 font-bold text-lg flex items-center gap-2">
                 <Activity className="w-5 h-5" />
                 인력 활용도
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 flex-1 overflow-auto">
-              <div className="p-4 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl">
+            <CardContent className="space-y-3 flex-1 flex flex-col justify-between py-4">
+              <div className="p-4 bg-white/90 rounded-xl shadow-sm text-center">
                 <p className="text-xs text-gray-600 mb-1">배정률</p>
                 <p className="text-3xl font-bold text-orange-600">{metrics.utilization.utilization_rate}%</p>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-3 bg-green-50 rounded-lg text-center">
+                <div className="p-3 bg-white/90 rounded-xl shadow-sm text-center">
                   <p className="text-xs text-gray-600 mb-1">투입 중</p>
                   <p className="text-xl font-bold text-green-600">{metrics.utilization.assigned_count}</p>
                 </div>
-                <div className="p-3 bg-gray-50 rounded-lg text-center">
+                <div className="p-3 bg-white/90 rounded-xl shadow-sm text-center">
                   <p className="text-xs text-gray-600 mb-1">대기 중</p>
-                  <p className="text-xl font-bold text-gray-600">{metrics.utilization.available_count}</p>
+                  <p className="text-xl font-bold text-gray-700">{metrics.utilization.available_count}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* 기술 역량 분석 */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="flex">
+          <Card className="border-0 shadow-lg h-full w-full flex flex-col" style={{ backgroundColor: '#e9d5ff' }}>
+            <CardHeader className="flex-shrink-0">
+              <CardTitle className="text-purple-900 font-bold text-lg flex items-center gap-2">
+                <Award className="w-5 h-5" />
+                기술 역량 분석
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 flex-1 flex flex-col justify-center">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-4 bg-white/90 rounded-xl shadow-sm">
+                  <p className="text-xs text-gray-700 mb-2 font-medium">다재다능 인력</p>
+                  <p className="text-2xl font-bold text-purple-600">{metrics.skill_competency?.multi_skilled_count || 0}명</p>
+                  <p className="text-xs text-gray-600 mt-1">5개 이상 기술</p>
+                </div>
+                <div className="p-4 bg-white/90 rounded-xl shadow-sm">
+                  <p className="text-xs text-gray-700 mb-2 font-medium">고유 기술</p>
+                  <p className="text-2xl font-bold text-blue-600">{metrics.skill_competency?.total_unique_skills || 0}개</p>
+                  <p className="text-xs text-gray-600 mt-1">전체 보유</p>
+                </div>
+              </div>
+              <div className="p-4 bg-white/90 rounded-xl shadow-sm">
+                <p className="text-xs text-gray-700 mb-2 font-medium">희소 기술 (3명 이하)</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(metrics.skill_competency?.rare_skills || []).slice(0, 4).map((skill, idx) => (
+                    <Badge key={idx} className="text-xs bg-purple-200 text-purple-800 border-0">{skill.name} ({skill.count})</Badge>
+                  ))}
                 </div>
               </div>
             </CardContent>
@@ -302,143 +239,26 @@ export function Dashboard() {
         </motion.div>
 
         {/* 학력 & 자격증 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.9 }}>
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg h-[320px] flex flex-col">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }} className="flex">
+          <Card className="border-0 shadow-lg h-full w-full flex flex-col" style={{ backgroundColor: '#dbeafe' }}>
             <CardHeader className="flex-shrink-0">
-              <CardTitle className="text-blue-700 font-bold text-lg flex items-center gap-2">
+              <CardTitle className="text-blue-900 font-bold text-lg flex items-center gap-2">
                 <BookOpen className="w-5 h-5" />
                 학력 & 자격증
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 flex-1 overflow-auto">
-              <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
+            <CardContent className="space-y-3 flex-1 flex flex-col justify-between py-4">
+              <div className="p-4 bg-white/90 rounded-xl shadow-sm text-center">
                 <p className="text-xs text-gray-600 mb-1">평균 자격증 수</p>
-                <p className="text-2xl font-bold text-blue-600">{metrics.education_certification.average_certifications}개</p>
+                <p className="text-3xl font-bold text-blue-600">{metrics.education_certification.average_certifications}개</p>
               </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-700 mb-2">학력 분포</p>
-                <div className="space-y-2">
+              <div className="bg-white/90 rounded-xl shadow-sm p-3">
+                <p className="text-xs font-semibold text-gray-700 mb-2">학력 분포</p>
+                <div className="space-y-1.5">
                   {metrics.education_certification.education_distribution.slice(0, 3).map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                      <span className="text-sm text-gray-700">{item.name}</span>
-                      <span className="text-sm font-semibold text-gray-900">{item.count}명</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* 포트폴리오 건강도 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.0 }}>
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg h-[320px] flex flex-col">
-            <CardHeader className="flex-shrink-0">
-              <CardTitle className="text-pink-700 font-bold text-lg flex items-center gap-2">
-                <Zap className="w-5 h-5" />
-                포트폴리오 건강도
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 flex-1 overflow-auto">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-gradient-to-br from-pink-50 to-rose-50 rounded-xl">
-                  <p className="text-xs text-gray-600 mb-1">다양성 지수</p>
-                  <p className="text-2xl font-bold text-pink-600">{metrics.portfolio_health.skill_diversity_index}</p>
-                </div>
-                <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
-                  <p className="text-xs text-gray-600 mb-1">고유 기술</p>
-                  <p className="text-2xl font-bold text-purple-600">{metrics.portfolio_health.unique_skills_count}</p>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-700 mb-2">역할 분포</p>
-                <div className="flex flex-wrap gap-2">
-                  {metrics.portfolio_health.role_distribution.slice(0, 4).map((item, idx) => (
-                    <Badge key={idx} variant="secondary" className="text-xs">{item.name} ({item.count})</Badge>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* 평가 점수 & 역량 갭 분석 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 평가 점수 분석 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.1 }}>
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg h-[480px] flex flex-col">
-            <CardHeader className="flex-shrink-0">
-              <CardTitle className="text-green-700 font-bold text-lg flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                평가 점수 분석
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 flex-1 overflow-auto">
-              <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
-                <p className="text-xs text-gray-600 mb-1">평균 평가 점수</p>
-                <p className="text-3xl font-bold text-green-600">{metrics.evaluation_scores.average_score}점</p>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-700 mb-2">점수 분포</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {metrics.evaluation_scores.score_distribution.map((item, idx) => (
-                    <div key={idx} className="p-3 bg-gray-50 rounded-lg text-center">
-                      <p className="text-xs text-gray-600 mb-1">{item.name}</p>
-                      <p className="text-lg font-bold text-gray-900">{item.count}명</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-700 mb-2">경력별 평균 점수</p>
-                <div className="space-y-2">
-                  {metrics.evaluation_scores.score_by_experience.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
-                      <span className="text-sm text-gray-700">{item.name}</span>
-                      <span className="text-sm font-semibold text-green-600">{item.avg_score}점</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* 역량 갭 분석 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.2 }}>
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg h-[480px] flex flex-col">
-            <CardHeader className="flex-shrink-0">
-              <CardTitle className="text-red-700 font-bold text-lg flex items-center gap-2">
-                <AlertCircle className="w-5 h-5" />
-                역량 갭 분석
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 flex-1 overflow-auto">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-gradient-to-br from-red-50 to-orange-50 rounded-xl">
-                  <p className="text-xs text-gray-600 mb-1">부족한 기술</p>
-                  <p className="text-2xl font-bold text-red-600">{metrics.skill_gaps.total_skill_gaps}개</p>
-                </div>
-                <div className="p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl">
-                  <p className="text-xs text-gray-600 mb-1">교육 필요</p>
-                  <p className="text-2xl font-bold text-yellow-600">{metrics.skill_gaps.training_needed_count}명</p>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-700 mb-2">부족한 기술 TOP 5</p>
-                <div className="space-y-2">
-                  {metrics.skill_gaps.top_skill_gaps.slice(0, 5).map((gap, idx) => (
-                    <div key={idx} className="p-2 bg-red-50 rounded-lg">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700">{gap.skill}</span>
-                        <Badge variant="destructive" className="text-xs">부족 {gap.gap}</Badge>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-600">
-                        <span>수요: {gap.demand}</span>
-                        <span>|</span>
-                        <span>공급: {gap.supply}</span>
-                      </div>
+                    <div key={idx} className="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
+                      <span className="text-xs text-gray-700">{item.name}</span>
+                      <span className="text-sm font-bold text-blue-700">{item.count}명</span>
                     </div>
                   ))}
                 </div>
@@ -448,101 +268,11 @@ export function Dashboard() {
         </motion.div>
       </div>
 
-      {/* 직원 품질 & 도메인 전문성 분석 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 직원 품질 분석 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.1 }}>
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg h-[520px] flex flex-col">
-            <CardHeader className="flex-shrink-0">
-              <CardTitle className="text-indigo-700 font-bold text-lg flex items-center gap-2">
-                <Award className="w-5 h-5" />
-                직원 품질 분석
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 flex-1 overflow-auto">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl">
-                  <p className="text-xs text-gray-600 mb-1">고급 기술 보유</p>
-                  <p className="text-2xl font-bold text-indigo-600">{metrics.employee_quality.advanced_tech_count}명</p>
-                  <p className="text-xs text-gray-500 mt-1">{metrics.employee_quality.advanced_tech_ratio}%</p>
-                </div>
-                <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
-                  <p className="text-xs text-gray-600 mb-1">성과 기록</p>
-                  <p className="text-2xl font-bold text-green-600">{metrics.employee_quality.performance_record_count}명</p>
-                  <p className="text-xs text-gray-500 mt-1">{metrics.employee_quality.performance_ratio}%</p>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-700 mb-2">역량 레벨 분포</p>
-                <div className="space-y-2">
-                  {metrics.employee_quality.skill_level_distribution.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">{item.name}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 bg-gray-200 rounded-full h-2">
-                          <motion.div initial={{ width: 0 }} animate={{ width: `${(item.count / 1500) * 100}%` }} transition={{ duration: 1, delay: idx * 0.1 }} className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full" />
-                        </div>
-                        <span className="text-sm font-semibold text-gray-900 w-10 text-right">{item.count}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
-                <p className="text-xs text-gray-600 mb-1">다중 역할 경험자</p>
-                <p className="text-xl font-bold text-purple-600">{metrics.employee_quality.multi_role_count}명</p>
-                <p className="text-xs text-gray-500 mt-1">3개 이상 역할 경험</p>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* 도메인 전문성 분석 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.2 }}>
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg h-[520px] flex flex-col">
-            <CardHeader className="flex-shrink-0">
-              <CardTitle className="text-blue-700 font-bold text-lg flex items-center gap-2">
-                <Target className="w-5 h-5" />
-                도메인 전문성
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 flex-1 overflow-auto">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl">
-                  <p className="text-xs text-gray-600 mb-1">다중 도메인 전문가</p>
-                  <p className="text-2xl font-bold text-blue-600">{metrics.domain_expertise.multi_domain_experts}명</p>
-                  <p className="text-xs text-gray-500 mt-1">2개 이상 도메인</p>
-                </div>
-                <div className="p-4 bg-gradient-to-br from-green-50 to-teal-50 rounded-xl">
-                  <p className="text-xs text-gray-600 mb-1">평균 도메인 경력</p>
-                  <p className="text-2xl font-bold text-green-600">{metrics.domain_expertise.average_domain_years}년</p>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-700 mb-2">주요 도메인 TOP 5</p>
-                <div className="space-y-2">
-                  {metrics.domain_expertise.top_domains.map((domain, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg">
-                      <span className="text-sm text-gray-700">{domain.name}</span>
-                      <span className="text-sm font-semibold text-blue-600">{domain.count}명</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl">
-                <p className="text-xs text-gray-600 mb-1">전체 도메인 수</p>
-                <p className="text-xl font-bold text-indigo-600">{metrics.domain_expertise.total_domains}개</p>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* 알림/액션 필요 항목 - 마지막 위치로 이동 */}
+      {/* 액션 필요 항목 */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 1.3 }}
+        transition={{ duration: 0.5, delay: 0.7 }}
       >
         <Card className="bg-gradient-to-br from-orange-50 to-red-50 border-orange-200 shadow-lg">
           <CardHeader>
@@ -593,16 +323,21 @@ export function Dashboard() {
         </Card>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* 인력현황상세, 프로젝트현황 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {/* 인력 현황 상세 */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
+          transition={{ duration: 0.5, delay: 0.8 }}
+          className="flex"
         >
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg h-[480px] flex flex-col">
+          <Card className="border-0 shadow-lg h-full w-full flex flex-col" style={{ backgroundColor: '#eff6ff' }}>
             <CardHeader className="flex-shrink-0">
-              <CardTitle className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">인력 현황 상세</CardTitle>
+              <CardTitle className="text-blue-900 font-bold text-lg flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-700" />
+                인력 현황 상세
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 flex-1 overflow-auto">
               {/* 경력 분포 */}
@@ -655,10 +390,14 @@ export function Dashboard() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.6 }}
+          className="flex"
         >
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg h-[480px] flex flex-col">
+          <Card className="border-0 shadow-lg h-full w-full flex flex-col" style={{ backgroundColor: '#f0fdf4' }}>
             <CardHeader className="flex-shrink-0">
-              <CardTitle className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">프로젝트 현황</CardTitle>
+              <CardTitle className="text-green-900 font-bold text-lg flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-green-700" />
+                프로젝트 현황
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 flex-1 overflow-auto">
               {/* 상태별 분포 */}
@@ -695,6 +434,91 @@ export function Dashboard() {
                         {item.name} ({item.count})
                       </Badge>
                     </motion.div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* 평가점수분석, 역량갭분석 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        {/* 평가 점수 분석 */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.9 }} className="flex">
+          <Card className="border-0 shadow-lg h-full w-full flex flex-col" style={{ backgroundColor: '#f0fdf4' }}>
+            <CardHeader className="flex-shrink-0">
+              <CardTitle className="text-green-900 font-bold text-lg flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-green-700" />
+                평가 점수 분석
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 flex-1 overflow-auto">
+              <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
+                <p className="text-xs text-gray-600 mb-1">평균 평가 점수</p>
+                <p className="text-3xl font-bold text-green-600">{metrics.evaluation_scores.average_score}점</p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-2">점수 분포</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {metrics.evaluation_scores.score_distribution.map((item, idx) => (
+                    <div key={idx} className="p-3 bg-gray-50 rounded-lg text-center">
+                      <p className="text-xs text-gray-600 mb-1">{item.name}</p>
+                      <p className="text-lg font-bold text-gray-900">{item.count}명</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-2">경력별 평균 점수</p>
+                <div className="space-y-2">
+                  {metrics.evaluation_scores.score_by_experience.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+                      <span className="text-sm text-gray-700">{item.name}</span>
+                      <span className="text-sm font-semibold text-green-600">{item.avg_score}점</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* 역량 갭 분석 */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.0 }} className="flex">
+          <Card className="border-0 shadow-lg h-full w-full flex flex-col" style={{ backgroundColor: '#fef2f2' }}>
+            <CardHeader className="flex-shrink-0">
+              <CardTitle className="text-red-900 font-bold text-lg flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-red-700" />
+                역량 갭 분석
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 flex-1 overflow-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-gradient-to-br from-red-50 to-orange-50 rounded-xl">
+                  <p className="text-xs text-gray-600 mb-1">부족한 기술</p>
+                  <p className="text-2xl font-bold text-red-600">{metrics.skill_gaps.total_skill_gaps}개</p>
+                </div>
+                <div className="p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl">
+                  <p className="text-xs text-gray-600 mb-1">교육 필요</p>
+                  <p className="text-2xl font-bold text-yellow-600">{metrics.skill_gaps.training_needed_count}명</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-2">부족한 기술 TOP 5</p>
+                <div className="space-y-2">
+                  {metrics.skill_gaps.top_skill_gaps.slice(0, 5).map((gap, idx) => (
+                    <div key={idx} className="p-2 bg-red-50 rounded-lg">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-gray-700">{gap.skill}</span>
+                        <Badge variant="destructive" className="text-xs">부족 {gap.gap}</Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <span>수요: {gap.demand}</span>
+                        <span>|</span>
+                        <span>공급: {gap.supply}</span>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -849,6 +673,96 @@ export function Dashboard() {
                     </div>
                   </motion.div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* 직원 품질 & 도메인 전문성 분석 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        {/* 직원 품질 분석 */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.1 }} className="flex">
+          <Card className="border-0 shadow-lg h-full w-full flex flex-col" style={{ backgroundColor: '#eef2ff' }}>
+            <CardHeader className="flex-shrink-0">
+              <CardTitle className="text-indigo-900 font-bold text-lg flex items-center gap-2">
+                <Award className="w-5 h-5 text-indigo-700" />
+                직원 품질 분석
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 flex-1 overflow-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl">
+                  <p className="text-xs text-gray-600 mb-1">고급 기술 보유</p>
+                  <p className="text-2xl font-bold text-indigo-600">{metrics.employee_quality.advanced_tech_count}명</p>
+                  <p className="text-xs text-gray-500 mt-1">{metrics.employee_quality.advanced_tech_ratio}%</p>
+                </div>
+                <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
+                  <p className="text-xs text-gray-600 mb-1">성과 기록</p>
+                  <p className="text-2xl font-bold text-green-600">{metrics.employee_quality.performance_record_count}명</p>
+                  <p className="text-xs text-gray-500 mt-1">{metrics.employee_quality.performance_ratio}%</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-2">역량 레벨 분포</p>
+                <div className="space-y-2">
+                  {metrics.employee_quality.skill_level_distribution.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">{item.name}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 bg-gray-200 rounded-full h-2">
+                          <motion.div initial={{ width: 0 }} animate={{ width: `${(item.count / 1500) * 100}%` }} transition={{ duration: 1, delay: idx * 0.1 }} className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full" />
+                        </div>
+                        <span className="text-sm font-semibold text-gray-900 w-10 text-right">{item.count}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
+                <p className="text-xs text-gray-600 mb-1">다중 역할 경험자</p>
+                <p className="text-xl font-bold text-purple-600">{metrics.employee_quality.multi_role_count}명</p>
+                <p className="text-xs text-gray-500 mt-1">3개 이상 역할 경험</p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* 도메인 전문성 분석 */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.2 }} className="flex">
+          <Card className="border-0 shadow-lg h-full w-full flex flex-col" style={{ backgroundColor: '#ecfeff' }}>
+            <CardHeader className="flex-shrink-0">
+              <CardTitle className="text-cyan-900 font-bold text-lg flex items-center gap-2">
+                <Target className="w-5 h-5 text-cyan-700" />
+                도메인 전문성
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 flex-1 overflow-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl">
+                  <p className="text-xs text-gray-600 mb-1">다중 도메인 전문가</p>
+                  <p className="text-2xl font-bold text-blue-600">{metrics.domain_expertise.multi_domain_experts}명</p>
+                  <p className="text-xs text-gray-500 mt-1">2개 이상 도메인</p>
+                </div>
+                <div className="p-4 bg-gradient-to-br from-green-50 to-teal-50 rounded-xl">
+                  <p className="text-xs text-gray-600 mb-1">평균 도메인 경력</p>
+                  <p className="text-2xl font-bold text-green-600">{metrics.domain_expertise.average_domain_years}년</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-2">주요 도메인 TOP 5</p>
+                <div className="space-y-2">
+                  {metrics.domain_expertise.top_domains.map((domain, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg">
+                      <span className="text-sm text-gray-700">{domain.name}</span>
+                      <span className="text-sm font-semibold text-blue-600">{domain.count}명</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl">
+                <p className="text-xs text-gray-600 mb-1">전체 도메인 수</p>
+                <p className="text-xl font-bold text-indigo-600">{metrics.domain_expertise.total_domains}개</p>
               </div>
             </CardContent>
           </Card>

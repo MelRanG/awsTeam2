@@ -220,111 +220,53 @@ def classify_project_domains(projects: List[Dict[str, Any]]) -> Dict[str, Any]:
         current_domains = set()
         domain_projects = {}
         
-        # 도메인 정규화 매핑 (다양한 표현을 표준 한글 도메인으로 통일)
-        domain_normalization = {
-            # 영어 -> 한글
-            'finance': '금융',
-            'banking': '금융',
-            'fintech': '금융',
-            'healthcare': '의료',
-            'medical': '의료',
-            'health': '의료',
-            'e-commerce': '전자상거래',
-            'ecommerce': '전자상거래',
-            'retail': '전자상거래',
-            'shopping': '전자상거래',
-            'manufacturing': '제조',
-            'industrial': '제조',
-            'factory': '제조',
-            'logistics': '물류',
-            'transportation': '물류',
-            'delivery': '물류',
-            'telecommunications': '통신',
-            'telecom': '통신',
-            'network': '통신',
-            '5g': '통신',
-            'education': '교육',
-            'learning': '교육',
-            'iot': 'IoT',
-            'aviation': '항공',
-            'airline': '항공',
-            'insurance': '보험',
-            'government': '공공',
-            'public': '공공',
-            'energy': '에너지',
-            'entertainment': '엔터테인먼트',
-            'media': '미디어',
-            'real estate': '부동산',
-            'security': '보안',
-            'blockchain': '블록체인',
-            # 한글/영어 혼합
-            'finance / banking': '금융',
-            'healthcare / medical': '의료',
-            'e-commerce / retail': '전자상거래',
-            'manufacturing / industrial': '제조',
-            'logistics / transportation': '물류',
-        }
-        
         for project in projects:
-            status = project.get('status', '').lower()
-            # 진행 중(in-progress) 또는 완료(completed) 프로젝트만 포함
-            if status not in ['in-progress', 'completed']:
+            status = project.get('status', '')
+            # 진행 중(In Progress) 또는 완료(Completed) 프로젝트만 포함
+            if status not in ['In Progress', 'Completed']:
                 continue
             
-            project_name = project.get('project_name', '')
-            domains_found = set()
-            
-            # 1. client_industry 필드에서 도메인 추출
+            # client_industry 필드에서 도메인 추출
             industry = project.get('client_industry', '')
             if industry and industry.strip():
-                industry_lower = industry.strip().lower()
+                domain = industry.strip()
+                current_domains.add(domain)
                 
-                # 정규화 매핑 확인
-                normalized = domain_normalization.get(industry_lower)
-                if normalized:
-                    domains_found.add(normalized)
-                else:
-                    # 매핑이 없으면 원본 사용 (첫 단어만)
-                    domain = industry.split('/')[0].strip()
-                    if domain:
-                        domains_found.add(domain)
-            
-            # 2. 프로젝트 이름과 설명에서 키워드 추출
-            project_text = (project_name + ' ' + project.get('description', '')).lower()
-            
-            for keyword, domain in domain_normalization.items():
-                if keyword in project_text:
-                    domains_found.add(domain)
-            
-            # 3. 기술 스택 분석으로 도메인 추론
-            tech_stack = project.get('tech_stack', {})
-            if isinstance(tech_stack, dict):
-                all_techs = []
-                for techs in tech_stack.values():
-                    if isinstance(techs, list):
-                        all_techs.extend([t.lower() for t in techs])
+                if domain not in domain_projects:
+                    domain_projects[domain] = []
+                domain_projects[domain].append(project.get('project_name', ''))
+        
+        # 도메인이 없으면 프로젝트 이름이나 설명에서 추출 시도
+        if not current_domains:
+            for project in projects:
+                status = project.get('status', '')
+                if status not in ['In Progress', 'Completed']:
+                    continue
+                    
+                project_name = project.get('project_name', '').lower()
+                description = project.get('description', '').lower()
                 
-                # 특정 기술 조합으로 도메인 추론
-                if 'oracle' in all_techs and 'spring boot' in all_techs:
-                    domains_found.add('금융')
-                if 'postgresql' in all_techs and ('django' in all_techs or 'fastapi' in all_techs):
-                    if 'time series db' in all_techs or 'edge computing' in all_techs:
-                        domains_found.add('제조')
-                if 'mongodb' in all_techs and 'elasticsearch' in all_techs:
-                    domains_found.add('전자상거래')
-                if 'cassandra' in all_techs or 'grpc' in all_techs:
-                    domains_found.add('통신')
-            
-            # 발견된 도메인 추가 (영어 도메인도 한글로 정규화)
-            for domain in domains_found:
-                # 영어 도메인을 한글로 변환
-                domain_lower = domain.lower()
-                normalized = domain_normalization.get(domain_lower, domain)
+                # 일반적인 도메인 키워드 매칭
+                domain_keywords = {
+                    'Finance': ['finance', 'banking', 'payment', 'fintech'],
+                    'Healthcare': ['health', 'medical', 'hospital', 'patient'],
+                    'E-commerce': ['ecommerce', 'e-commerce', 'shopping', 'retail'],
+                    'Manufacturing': ['manufacturing', 'factory', 'production'],
+                    'Logistics': ['logistics', 'delivery', 'shipping', 'warehouse'],
+                    'Education': ['education', 'learning', 'school', 'university'],
+                    'Government': ['government', 'public', 'civic'],
+                    'Telecommunications': ['telecom', 'network', 'communication'],
+                    'Insurance': ['insurance', 'policy', 'claim'],
+                    'Real Estate': ['real estate', 'property', 'housing']
+                }
                 
-                current_domains.add(normalized)
-                if normalized not in domain_projects:
-                    domain_projects[normalized] = []
-                domain_projects[normalized].append(project_name)
+                for domain, keywords in domain_keywords.items():
+                    if any(keyword in project_name or keyword in description for keyword in keywords):
+                        current_domains.add(domain)
+                        if domain not in domain_projects:
+                            domain_projects[domain] = []
+                        domain_projects[domain].append(project.get('project_name', ''))
+                        break
         
         # 도메인 목록 정렬
         sorted_domains = sorted(list(current_domains))
@@ -408,7 +350,7 @@ def identify_potential_domains_from_trends(
     employees: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     """
-    인력 기술 기반 TechTrends 도메인 식별 (현재 보유하지 않은 도메인만)
+    인력 기술 기반 TechTrends 도메인 식별
     
     Requirements: 4.2 - 보유 인력의 기술로 진출 가능한 도메인 분석
     
@@ -422,45 +364,17 @@ def identify_potential_domains_from_trends(
     """
     current_domains = set(classification.get('current_domains', []))
     
-    # 도메인 정규화 매핑 (영어 -> 한글)
-    domain_normalization = {
-        'AI_ML': 'AI/ML',
-        'Backend': '백엔드 개발',
-        'Frontend': '프론트엔드 개발',
-        'Cloud': '클라우드 서비스',
-        'Database': '데이터베이스 관리',
-        'DevOps': 'DevOps/인프라',
-        'Mobile': '모바일 앱',
-        'Security': '보안/인증',
-        'Blockchain': '블록체인',
-        'IoT': 'IoT/스마트기기',
-        'Healthcare': '의료',
-        'Telecommunications': '통신',
-        'Data_Engineering': '데이터 엔지니어링',
-        'Gaming': '게임/엔터테인먼트',
-        'FinTech': '핀테크',
-        'Energy': '에너지',
-        'Automotive': '자동차/모빌리티',
-        'PropTech': '부동산/프롭테크',
-        'InsurTech': '보험/인슈어테크',
-    }
-    
-    # 1. 인력이 보유한 모든 기술 수집 (기술별 숙련도 포함)
-    employee_skills = {}  # {skill_name: max_level}
-    skill_level_scores = {'Beginner': 1, 'Intermediate': 2, 'Advanced': 3, 'Expert': 4}
-    
+    # 1. 인력이 보유한 모든 기술 수집
+    employee_skills = set()
     for employee in employees:
         skills = employee.get('skills', [])
         for skill in skills:
             if isinstance(skill, dict):
                 skill_name = skill.get('name', '')
-                skill_level = skill.get('level', 'Intermediate')
                 if skill_name:
-                    current_score = skill_level_scores.get(skill_level, 2)
-                    if skill_name not in employee_skills or current_score > skill_level_scores.get(employee_skills[skill_name], 0):
-                        employee_skills[skill_name] = skill_level
+                    employee_skills.add(skill_name)
     
-    logger.info(f"보유 인력 기술: {len(employee_skills)}개 - {list(employee_skills.keys())[:10]}")
+    logger.info(f"보유 인력 기술: {len(employee_skills)}개 - {list(employee_skills)[:10]}")
     
     # 2. TechTrends에서 보유 기술과 연관된 도메인 찾기
     domain_trends = {}
@@ -473,16 +387,18 @@ def identify_potential_domains_from_trends(
         demand_score = float(trend.get('demand_score', 0))
         trend_score = float(trend.get('trend_score', 0))
         
-        # 1. related_domains 처리 (산업 도메인)
-        for domain in related_domains:
+        # related_domains가 있으면 사용, 없으면 category 사용
+        domains_to_check = related_domains if related_domains else [category]
+        
+        for domain in domains_to_check:
             if not domain or domain == '':
                 continue
-            
+                
             if domain not in domain_trends:
                 domain_trends[domain] = {
                     'domain_name': domain,
                     'technologies': [],
-                    'matched_technologies': [],
+                    'matched_technologies': [],  # 보유 기술과 매칭되는 기술
                     'avg_growth_rate': 0,
                     'avg_demand_score': 0,
                     'avg_trend_score': 0,
@@ -491,6 +407,7 @@ def identify_potential_domains_from_trends(
             
             domain_trends[domain]['technologies'].append(tech_name)
             
+            # 보유 기술과 매칭되는지 확인
             if tech_name in employee_skills:
                 domain_trends[domain]['matched_technologies'].append(tech_name)
             
@@ -498,31 +415,6 @@ def identify_potential_domains_from_trends(
             domain_trends[domain]['avg_demand_score'] += demand_score
             domain_trends[domain]['avg_trend_score'] += trend_score
             domain_trends[domain]['count'] += 1
-        
-        # 2. category 처리 (기술 도메인) - 정규화하여 추가
-        if category:
-            normalized_category = domain_normalization.get(category, category)
-            
-            if normalized_category not in domain_trends:
-                domain_trends[normalized_category] = {
-                    'domain_name': normalized_category,
-                    'technologies': [],
-                    'matched_technologies': [],
-                    'avg_growth_rate': 0,
-                    'avg_demand_score': 0,
-                    'avg_trend_score': 0,
-                    'count': 0
-                }
-            
-            domain_trends[normalized_category]['technologies'].append(tech_name)
-            
-            if tech_name in employee_skills:
-                domain_trends[normalized_category]['matched_technologies'].append(tech_name)
-            
-            domain_trends[normalized_category]['avg_growth_rate'] += growth_rate
-            domain_trends[normalized_category]['avg_demand_score'] += demand_score
-            domain_trends[normalized_category]['avg_trend_score'] += trend_score
-            domain_trends[normalized_category]['count'] += 1
     
     # 3. 평균 계산 및 매칭률 계산
     for domain_info in domain_trends.values():
@@ -533,53 +425,31 @@ def identify_potential_domains_from_trends(
             domain_info['avg_trend_score'] /= count
         
         # 기술 매칭률 계산
-        total_techs = len(set(domain_info['technologies']))  # 중복 제거
-        matched_techs = len(set(domain_info['matched_technologies']))  # 중복 제거
+        total_techs = len(domain_info['technologies'])
+        matched_techs = len(domain_info['matched_technologies'])
         domain_info['skill_match_rate'] = (matched_techs / total_techs * 100) if total_techs > 0 else 0
     
-    # 4. 현재 도메인이 아닌 산업 도메인만 필터링 (기술 도메인 제외)
-    # 기술 도메인: 프론트엔드, 백엔드, 데이터베이스, 데이터 엔지니어링, DevOps, 클라우드 등
-    excluded_tech_domains = {
-        '프론트엔드 개발', '프론트엔드', 'Frontend',
-        '백엔드 개발', '백엔드', 'Backend',
-        '데이터베이스 관리', 'Database',
-        '데이터 엔지니어링', 'Data_Engineering',
-        'DevOps/인프라', 'DevOps',
-        '클라우드 서비스', 'Cloud',
-        '모바일 앱', 'Mobile',
-        '보안/인증', 'Security',
-    }
-    
-    logger.info(f"현재 보유 도메인: {current_domains}")
-    
+    # 4. 보유 기술이 있는 도메인만 필터링 (현재 도메인 제외)
     potential_domains = [
         info for domain, info in domain_trends.items()
-        if domain not in current_domains 
-        and domain not in excluded_tech_domains
-        and len(info['matched_technologies']) > 0  # 보유 기술이 있는 도메인만
+        if len(info['matched_technologies']) > 0 and domain not in current_domains
     ]
     
-    logger.info(f"필터링 전 도메인: {len(domain_trends)}개")
-    logger.info(f"필터링 후 신규 도메인: {len(potential_domains)}개")
-    
-    # 5. 기술 매칭률과 시장 지표를 종합하여 정렬
-    # 점수 = 기술매칭률(50%) + 성장률(20%) + 수요점수(20%) + 트렌드점수(10%)
+    # 5. 기술 매칭률과 성장률을 종합하여 정렬
+    # 점수 = 기술매칭률(60%) + 성장률(20%) + 수요점수(20%)
     for domain in potential_domains:
         domain['opportunity_score'] = (
-            domain['skill_match_rate'] * 0.5 +
-            min(domain['avg_growth_rate'], 100) * 0.2 +
-            min(domain['avg_demand_score'], 100) * 0.2 +
-            min(domain['avg_trend_score'], 100) * 0.1
+            domain['skill_match_rate'] * 0.6 +
+            (domain['avg_growth_rate'] / 100 * 100) * 0.2 +
+            (domain['avg_demand_score'] / 100 * 100) * 0.2
         )
     
     potential_domains.sort(key=lambda x: x['opportunity_score'], reverse=True)
     
-    logger.info(f"진출 가능 신규 도메인: {len(potential_domains)}개")
-    for domain in potential_domains[:5]:
-        logger.info(f"  - {domain['domain_name']}: {domain['opportunity_score']:.1f}점 (매칭률: {domain['skill_match_rate']:.1f}%)")
+    logger.info(f"진출 가능 도메인: {len(potential_domains)}개 발견")
     
-    # 상위 20개 반환 (더 많은 신규 도메인 표시)
-    return potential_domains[:20]
+    # 상위 8개 반환
+    return potential_domains[:8]
 
 
 def analyze_domain_entry_with_trends(
@@ -652,9 +522,6 @@ def analyze_domain_entry_with_trends(
             demand_score=domain_info['avg_demand_score']
         )
         
-        # 도메인별 프로젝트 예시 생성
-        project_examples = generate_project_examples(domain_name)
-        
         return {
             'domain_name': domain_name,
             'feasibility_score': feasibility_score,
@@ -672,8 +539,7 @@ def analyze_domain_entry_with_trends(
             ],
             'reasoning': reasoning,
             'market_growth_rate': round(domain_info['avg_growth_rate'], 1),
-            'market_demand_score': round(domain_info['avg_demand_score'], 1),
-            'project_examples': project_examples
+            'market_demand_score': round(domain_info['avg_demand_score'], 1)
         }
         
     except Exception as e:
@@ -1244,114 +1110,6 @@ def update_domain_portfolio_on_new_hire(employee_data: Dict[str, Any]) -> Dict[s
             'total_domains_added': 0,
             'error': str(e)
         }
-
-
-def generate_project_examples(domain_name: str) -> List[str]:
-    """
-    도메인별 프로젝트 예시 생성
-    
-    Args:
-        domain_name: 도메인 이름
-        
-    Returns:
-        list: 프로젝트 예시 3개
-    """
-    project_examples_map = {
-        'AI/ML': [
-            '고객 행동 예측 AI 시스템 구축',
-            'ChatGPT 기반 고객 상담 챗봇 개발',
-            '이미지 인식 기반 품질 검사 자동화'
-        ],
-        '게임': [
-            '모바일 RPG 게임 개발',
-            'VR 교육용 시뮬레이션 게임',
-            '멀티플레이어 배틀 로얄 게임'
-        ],
-        '게임/엔터테인먼트': [
-            '메타버스 플랫폼 구축',
-            '실시간 3D 인터랙티브 콘텐츠 제작',
-            'Unity 기반 교육용 게임 개발'
-        ],
-        '엔터테인먼트': [
-            'OTT 스트리밍 플랫폼 구축',
-            'AI 기반 콘텐츠 추천 시스템',
-            '실시간 라이브 방송 플랫폼'
-        ],
-        '핀테크': [
-            '간편 결제 시스템 구축',
-            '블록체인 기반 디지털 자산 거래소',
-            'AI 기반 신용 평가 시스템'
-        ],
-        '자동차': [
-            '자율주행 제어 시스템 개발',
-            '차량 텔레매틱스 플랫폼 구축',
-            '전기차 배터리 관리 시스템'
-        ],
-        '자동차/모빌리티': [
-            '스마트 모빌리티 통합 플랫폼',
-            '차량 공유 서비스 앱 개발',
-            'V2X 통신 시스템 구축'
-        ],
-        '에너지': [
-            '스마트 그리드 관리 시스템',
-            '신재생 에너지 모니터링 플랫폼',
-            'ESS 배터리 최적화 시스템'
-        ],
-        '보험': [
-            '텔레매틱스 기반 자동차 보험',
-            'AI 보험 심사 자동화 시스템',
-            '디지털 보험 가입 플랫폼'
-        ],
-        '보험/인슈어테크': [
-            '온디맨드 마이크로 보험 서비스',
-            '블록체인 기반 보험 청구 시스템',
-            'IoT 기반 건강 보험 플랫폼'
-        ],
-        '부동산': [
-            '3D 가상 부동산 투어 플랫폼',
-            'AI 기반 부동산 가격 예측 시스템',
-            '스마트 빌딩 관리 시스템'
-        ],
-        '부동산/프롭테크': [
-            '블록체인 기반 부동산 거래 플랫폼',
-            'VR 부동산 중개 서비스',
-            '스마트 홈 IoT 통합 시스템'
-        ],
-        '미디어': [
-            'AI 기반 콘텐츠 자동 생성 시스템',
-            '분산형 미디어 저장 플랫폼',
-            '실시간 영상 편집 클라우드 서비스'
-        ],
-        '로봇': [
-            '물류 자동화 로봇 시스템',
-            '서빙 로봇 제어 플랫폼',
-            '협동 로봇(Cobot) 통합 시스템'
-        ],
-        '건설': [
-            'BIM 기반 건설 프로젝트 관리',
-            '스마트 건설 현장 안전 관리 시스템',
-            'AI 기반 건축 설계 최적화'
-        ],
-        'IoT/스마트기기': [
-            '스마트 홈 통합 제어 시스템',
-            '산업용 IoT 모니터링 플랫폼',
-            '웨어러블 헬스케어 디바이스'
-        ],
-        '모바일': [
-            '크로스 플랫폼 모바일 앱 개발',
-            '모바일 결제 통합 솔루션',
-            '위치 기반 서비스 앱'
-        ],
-    }
-    
-    # 도메인에 해당하는 예시가 없으면 일반적인 예시 반환
-    default_examples = [
-        f'{domain_name} 분야 디지털 전환 프로젝트',
-        f'{domain_name} 통합 관리 플랫폼 구축',
-        f'AI 기반 {domain_name} 최적화 시스템'
-    ]
-    
-    return project_examples_map.get(domain_name, default_examples)
 
 
 def decimal_default(obj):

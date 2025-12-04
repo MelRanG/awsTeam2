@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { TrendingUp, Users, Lightbulb, ArrowRight, Search, AlertCircle, CheckCircle, Target, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { TrendingUp, Users, Lightbulb, ArrowRight, AlertCircle, CheckCircle, Target, Zap, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -17,6 +17,9 @@ interface IdentifiedDomain {
   transferable_employees: number;
   recommended_team: string[];
   reasoning: string;
+  project_examples?: string[];
+  market_growth_rate?: number;
+  market_demand_score?: number;
 }
 
 interface DomainAnalysisResult {
@@ -28,9 +31,14 @@ interface DomainAnalysisResult {
 
 export function DomainAnalysis() {
   const [selectedDomain, setSelectedDomain] = useState<IdentifiedDomain | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [domainData, setDomainData] = useState<DomainAnalysisResult | null>(null);
+
+  // 페이지 진입 시 자동으로 도메인 분석 실행
+  useEffect(() => {
+    handleDomainAnalysis();
+  }, []);
 
   const handleDomainAnalysis = async () => {
     setLoading(true);
@@ -92,47 +100,63 @@ export function DomainAnalysis() {
         <p className="text-gray-600">인력 이력을 기반으로 신규 도메인 진출 가능성을 분석합니다</p>
       </motion.div>
 
-      {/* 분석 실행 섹션 */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.1 }}
-      >
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-blue-600" />
-              도메인 확장 분석
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4 mb-6">
-              <Button 
-                onClick={handleDomainAnalysis} 
-                disabled={loading}
-                className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-              >
-                <Search className="w-4 h-4" />
-                {loading ? '분석 중...' : '신규 도메인 분석 시작'}
-              </Button>
-            </div>
+      {/* 로딩 상태 */}
+      {loading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center justify-center py-12"
+        >
+          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mb-4" />
+          <p className="text-gray-600">도메인 분석 중...</p>
+          <p className="text-sm text-gray-500 mt-2">프로젝트 및 인력 데이터를 분석하고 있습니다</p>
+        </motion.div>
+      )}
 
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 mb-4 flex items-start gap-3"
-              >
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold">분석 실패</p>
-                  <p className="text-sm">{error}</p>
+      {/* 에러 상태 */}
+      {error && !loading && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-red-900 mb-1">분석 실패</p>
+                  <p className="text-sm text-red-700 mb-4">{error}</p>
+                  <Button 
+                    onClick={handleDomainAnalysis}
+                    variant="outline"
+                    size="sm"
+                    className="border-red-200 text-red-700 hover:bg-red-50"
+                  >
+                    다시 시도
+                  </Button>
                 </div>
-              </motion.div>
-            )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
-            {domainData && (
+      {/* 분석 결과 */}
+      {domainData && !loading && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-blue-600" />
+                도메인 확장 분석 결과
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-6">
                 {/* 현재 도메인 vs 잠재 도메인 비교 - Task 27.1 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -215,10 +239,10 @@ export function DomainAnalysis() {
                   </div>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* 도메인 확장 추천 섹션 - Task 27.3 */}
       {domainData && domainData.identified_domains.length > 0 && (
@@ -295,6 +319,24 @@ export function DomainAnalysis() {
                           <p className="text-sm text-blue-800 leading-relaxed">{domain.reasoning}</p>
                         </div>
 
+                        {/* 프로젝트 예시 */}
+                        {domain.project_examples && domain.project_examples.length > 0 && (
+                          <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-100">
+                            <div className="flex items-start gap-2 mb-3">
+                              <Target className="w-4 h-4 text-purple-600 flex-shrink-0 mt-1" />
+                              <p className="text-sm font-semibold text-purple-900">프로젝트 예시</p>
+                            </div>
+                            <ul className="space-y-2">
+                              {domain.project_examples.map((example, idx) => (
+                                <li key={idx} className="flex items-start gap-2 text-sm text-purple-800">
+                                  <span className="text-purple-600 font-semibold">{idx + 1}.</span>
+                                  <span>{example}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
                         {/* 기술 갭 시각화 - Task 27.2 */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* 보유 기술 */}
@@ -314,10 +356,22 @@ export function DomainAnalysis() {
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: index * 0.05 + idx * 0.02 }}
                                   >
-                                    <Badge className="bg-green-600 text-white">
-                                      {skill}
+                                    <Badge 
+                                      className="bg-green-600 hover:bg-green-700"
+                                      style={{ 
+                                        backgroundColor: '#16a34a',
+                                        color: '#000000',
+                                        fontWeight: '500'
+                                      }}
+                                    >
+                                      <span style={{ color: '#000000', fontWeight: '500' }}>
+                                        {skill}
+                                      </span>
                                       {domain.skill_proficiency[skill] && (
-                                        <span className="ml-1 text-xs opacity-80">
+                                        <span 
+                                          className="ml-1 text-xs"
+                                          style={{ color: '#000000', opacity: '0.8' }}
+                                        >
                                           ({domain.skill_proficiency[skill]})
                                         </span>
                                       )}
@@ -378,9 +432,9 @@ export function DomainAnalysis() {
                               <p className="text-sm font-semibold text-blue-900">추천 팀원</p>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                              {domain.recommended_team.slice(0, 5).map((userId, idx) => (
+                              {domain.recommended_team.slice(0, 5).map((member: any, idx: number) => (
                                 <Badge key={idx} variant="secondary" className="text-xs">
-                                  {userId}
+                                  {typeof member === 'string' ? member : member.name}
                                 </Badge>
                               ))}
                               {domain.recommended_team.length > 5 && (
@@ -454,6 +508,21 @@ export function DomainAnalysis() {
                     <p className="text-gray-700 leading-relaxed">{selectedDomain.reasoning}</p>
                   </div>
 
+                  {/* 프로젝트 예시 */}
+                  {selectedDomain.project_examples && selectedDomain.project_examples.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-3">프로젝트 예시</h4>
+                      <ul className="space-y-2">
+                        {selectedDomain.project_examples.map((example, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="text-blue-600 font-semibold">{idx + 1}.</span>
+                            <span className="text-gray-700">{example}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   {/* 필요 기술 전체 목록 */}
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-3">필요 기술 전체 목록</h4>
@@ -470,9 +539,9 @@ export function DomainAnalysis() {
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-3">추천 팀원 전체</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      {selectedDomain.recommended_team.map((userId, idx) => (
+                      {selectedDomain.recommended_team.map((member: any, idx: number) => (
                         <div key={idx} className="p-2 bg-gray-100 rounded-lg text-sm text-center">
-                          {userId}
+                          {typeof member === 'string' ? member : member.name}
                         </div>
                       ))}
                     </div>

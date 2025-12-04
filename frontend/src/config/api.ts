@@ -522,15 +522,27 @@ export const api = {
   /**
    * 프로젝트 배정 API
    */
-  assignProject: async (projectId: string, employeeId: string): Promise<any> => {
+  assignProject: async (projectId: string, employeeId: string, assignmentData?: any): Promise<any> => {
     const url = `${API_BASE_URL}/projects/${projectId}/assign`;
-    console.log('프로젝트 배정:', url, { employee_id: employeeId });
+    
+    const requestBody = {
+      employee_id: employeeId,
+      ...(assignmentData && {
+        role: assignmentData.role,
+        start_date: assignmentData.startDate,
+        end_date: assignmentData.endDate,
+        allocation_rate: assignmentData.allocationRate,
+        assignment_reason: assignmentData.reason,
+      }),
+    };
+    
+    console.log('프로젝트 배정:', url, requestBody);
     
     try {
       const response = await fetch(url, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ employee_id: employeeId }),
+        body: JSON.stringify(requestBody),
       });
 
       console.log('프로젝트 배정 응답 상태:', response.status);

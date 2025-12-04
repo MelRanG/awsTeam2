@@ -9,6 +9,15 @@ import { api, Project as APIProject } from '../config/api';
 import { ProjectRegistrationModal, ProjectFormData } from './ProjectRegistrationModal';
 import { toast } from 'sonner';
 
+interface TeamMember {
+  employee_id: string;
+  role: string;
+  start_date?: string;
+  end_date?: string;
+  allocation_rate?: number;
+  assigned_date?: string;
+}
+
 interface Project {
   id: string;
   name: string;
@@ -20,6 +29,7 @@ interface Project {
   startDate: string;
   endDate: string;
   matchRate?: number;
+  teamMembers?: TeamMember[];
 }
 
 interface ProjectManagementProps {
@@ -61,6 +71,7 @@ export function ProjectManagement({ onNavigateToRecommendation }: ProjectManagem
             startDate: proj.start_date || '미정',
             endDate: proj.end_date || '미정',
             matchRate: undefined,
+            teamMembers: proj.assigned_members || [],
           };
         });
         
@@ -310,6 +321,27 @@ export function ProjectManagement({ onNavigateToRecommendation }: ProjectManagem
                         className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full"
                       />
                     </div>
+                    
+                    {/* 배정된 팀 멤버 표시 */}
+                    {project.teamMembers && project.teamMembers.length > 0 && (
+                      <div className="mt-3 space-y-1">
+                        {project.teamMembers.slice(0, 3).map((member, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-xs">
+                            <Badge variant="secondary" className="text-xs">
+                              {member.role}
+                            </Badge>
+                            <span className="text-gray-600">
+                              {member.allocation_rate}% 투입
+                            </span>
+                          </div>
+                        ))}
+                        {project.teamMembers.length > 3 && (
+                          <p className="text-xs text-gray-500">
+                            외 {project.teamMembers.length - 3}명
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div>

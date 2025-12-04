@@ -232,6 +232,12 @@ def find_employees_by_skills(required_skills: List[str]) -> List[Dict[str, Any]]
         current_year = datetime.now().year
         
         for employee in employees:
+            # 이미 다른 프로젝트에 배정된 직원은 제외
+            current_project = employee.get('current_project')
+            if current_project:
+                logger.info(f"직원 {employee.get('user_id')}는 프로젝트 {current_project}에 이미 배정되어 있어 제외")
+                continue
+            
             skills = employee.get('skills', [])
             work_experience = employee.get('work_experience', [])
             
@@ -521,9 +527,12 @@ def check_availability(candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]
 
 def generate_reasoning(candidate: Dict[str, Any]) -> str:
     """
-    추천 근거 생성 (구조화된 근거)
+    추천 근거 생성 (고급 알고리즘 기반)
     
     Requirements: 2.4 - 추천 근거 생성
+    
+    적합도 점수 공식 기반:
+    Score(P, E) = Σ(Smatch × Wlevel × Wrecency) + (Expdomain × Wdomain)
     
     Args:
         candidate: 후보자 정보
@@ -531,26 +540,105 @@ def generate_reasoning(candidate: Dict[str, Any]) -> str:
     Returns:
         str: 추천 근거
     """
-    # 구조화된 근거 생성
-    matched_skills = ', '.join(candidate.get('matched_skills', []))
+    matched_skills = candidate.get('matched_skills', [])
     skill_score = candidate.get('skill_match_score', 0)
     affinity_score = candidate.get('affinity_score', 0)
     availability = candidate.get('availability', 'Unknown')
     years_exp = candidate.get('years_of_experience', 0)
+    role = candidate.get('role', '개발자')
+    skill_details = candidate.get('skill_details', [])
+    domain_bonus = candidate.get('domain_bonus', False)
     
-    reasoning = f"""[핵심 강점] {years_exp}년 경력의 {candidate.get('role', '개발자')}로, {matched_skills} 기술을 보유하고 있으며 가중치 기반 기술 매칭 점수 {skill_score:.1f}점을 기록했습니다. """
+    # 1단계: 적합도 점수 산정 (Feature Engineering)
+    reasoning = f"""【1단계: 적합도 점수 산정】
+▸ 기본 프로필: {years_exp}년 경력의 {role}
+▸ 종합 적합도 점수: {skill_score:.1f}/100점
+
+【점수 산정 공식】
+Score(P,E) = Σ(Smatch × Wlevel × Wrecency) + (Expdomain × Wdomain)
+
+"""
+    
+    # 기술별 상세 점수
+    if skill_details:
+        reasoning += "【기술별 가중치 분석】\n"
+        for detail in skill_details[:3]:  # 상위 3개만 표시
+            skill_name = detail.get('skill', '')
+            level = detail.get('level', 'Intermediate')
+            years = detail.get('years', 0)
+            score = detail.get('score', 0)
+            
+            # 숙련도 가중치 설명
+            level_weight_desc = {
+                'Beginner': '1.0 (초급)',
+                'Intermediate': '1.5 (중급)',
+                'Advanced': '1.8 (고급)',
+                'Expert': '2.0 (전문가)'
+            }
+            
+            reasoning += f"  • {skill_name}: {level} ({years}년 경험)\n"
+            reasoning += f"    - 숙련도 가중치(Wlevel): {level_weight_desc.get(level, '1.0')}\n"
+            reasoning += f"    - 최신성 가중치(Wrecency): 최근 프로젝트 활용 반영\n"
+            reasoning += f"    - 기술 점수: {score:.2f}점\n"
+    
+    # 도메인 경험 보너스
+    if domain_bonus:
+        reasoning += "\n【도메인 경험 가중치】\n"
+        reasoning += "  • 유사 산업군 프로젝트 수행 이력 확인\n"
+        reasoning += "  • 도메인 가중치(Wdomain): 1.3배 적용\n"
+        reasoning += "  • 보너스 점수: +30% 가산\n"
+    
+    # 2단계: 추천 알고리즘 (Content-based Filtering)
+    reasoning += f"\n【2단계: 추천 알고리즘】\n"
+    reasoning += f"▸ 알고리즘: Content-based Filtering\n"
+    reasoning += f"▸ 매칭된 핵심 기술: {', '.join(matched_skills[:5])}\n"
+    
+    if len(matched_skills) > 5:
+        reasoning += f"▸ 추가 매칭 기술: 외 {len(matched_skills) - 5}개\n"
+    
+    # 3단계: 하이브리드 추천 (벡터 + 필터링)
+    reasoning += f"\n【3단계: 하이브리드 점수】\n"
+    
+    # 팀 적합성 (친밀도)
+    if affinity_score > 50:
+        reasoning += f"▸ 팀 친밀도: {affinity_score:.1f}점 (우수)\n"
+        reasoning += f"  - 기존 팀원들과 높은 협업 시너지 예상\n"
+        reasoning += f"  - 친밀도 가중치: 0.2배 적용\n"
+    elif affinity_score > 0:
+        reasoning += f"▸ 팀 친밀도: {affinity_score:.1f}점\n"
+        reasoning += f"  - 팀 협업 가능 수준\n"
+    else:
+        reasoning += f"▸ 팀 친밀도: 신규 팀원 (친밀도 데이터 없음)\n"
+    
+    # 가용성 필터
+    reasoning += f"\n【4단계: 가용성 필터】\n"
+    if availability == 'Available':
+        reasoning += f"▸ 상태: 즉시 투입 가능 ✓\n"
+        reasoning += f"  - 가용성 가중치: 1.0 (최대)\n"
+    elif availability == 'Busy':
+        current_project = candidate.get('current_project', '다른 프로젝트')
+        reasoning += f"▸ 상태: 현재 '{current_project}' 참여 중\n"
+        reasoning += f"  - 가용성 가중치: 0.5 (일정 조율 필요)\n"
+        reasoning += f"  - 권장: 프로젝트 종료 시점 확인 후 배정\n"
+    else:
+        reasoning += f"▸ 상태: 가용성 확인 필요\n"
+    
+    # 최종 추천 근거
+    reasoning += f"\n【최종 추천 근거】\n"
+    
+    if skill_score >= 70:
+        reasoning += f"✓ 높은 기술 적합도 ({skill_score:.1f}점)\n"
+    elif skill_score >= 50:
+        reasoning += f"✓ 적정 기술 적합도 ({skill_score:.1f}점)\n"
     
     if affinity_score > 50:
-        reasoning += f"[팀 적합성] 기존 팀원들과의 친밀도 점수가 {affinity_score:.1f}점으로 높아 원활한 협업이 예상됩니다. "
-    elif affinity_score > 0:
-        reasoning += f"[팀 적합성] 팀 친밀도 점수 {affinity_score:.1f}점으로 협업 가능합니다. "
+        reasoning += f"✓ 우수한 팀 협업 능력\n"
+    
+    if domain_bonus:
+        reasoning += f"✓ 유사 도메인 프로젝트 경험 보유\n"
     
     if availability == 'Available':
-        reasoning += "[가용성] 현재 투입 가능한 상태입니다."
-    elif availability == 'Busy':
-        reasoning += f"[고려사항] 현재 '{candidate.get('current_project', '다른 프로젝트')}'에 참여 중이므로 일정 조율이 필요합니다."
-    else:
-        reasoning += "[가용성] 가용성 확인이 필요합니다."
+        reasoning += f"✓ 즉시 투입 가능\n"
     
     return reasoning
 

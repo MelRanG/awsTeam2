@@ -135,17 +135,17 @@ export function PersonnelRecommendation({ preselectedProjectId }: PersonnelRecom
   };
 
   // 프로젝트 배정 확인
-  const handleConfirmAssignment = async () => {
+  const handleConfirmAssignment = async (assignmentData: any) => {
     if (!selectedEmployee || !selectedProject) return;
 
     try {
-      // API 호출하여 프로젝트 배정
-      const response = await api.assignProject(selectedProject, selectedEmployee.user_id);
+      // API 호출하여 프로젝트 배정 (투입 정보 포함)
+      const response = await api.assignProject(selectedProject, selectedEmployee.user_id, assignmentData);
       
       console.log('배정 완료:', response);
       
       // 성공 메시지 표시
-      alert(`${selectedEmployee.name}님이 프로젝트에 배정되었습니다.`);
+      alert(`${selectedEmployee.name}님이 프로젝트에 ${assignmentData.role}로 배정되었습니다.\n투입률: ${assignmentData.allocationRate}%\n시작일: ${assignmentData.startDate}`);
       
       // 추천 목록 새로고침
       await handleAnalyze();
@@ -439,6 +439,7 @@ export function PersonnelRecommendation({ preselectedProjectId }: PersonnelRecom
         onConfirm={handleConfirmAssignment}
         employeeName={selectedEmployee?.name || ''}
         projectName={projects.find(p => p.project_id === selectedProject)?.project_name || ''}
+        projectEndDate={projects.find(p => p.project_id === selectedProject)?.end_date}
         employeeAvailability={selectedEmployee?.availability}
       />
 

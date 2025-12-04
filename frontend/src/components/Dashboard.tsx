@@ -189,19 +189,19 @@ export function Dashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
                   <p className="text-xs text-gray-600 mb-1">다재다능 인력</p>
-                  <p className="text-2xl font-bold text-purple-600">{metrics.skill_competency.multi_skilled_count}명</p>
+                  <p className="text-2xl font-bold text-purple-600">{metrics.skill_competency?.multi_skilled_count || 0}명</p>
                   <p className="text-xs text-gray-500 mt-1">5개 이상 기술</p>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
                   <p className="text-xs text-gray-600 mb-1">고유 기술</p>
-                  <p className="text-2xl font-bold text-blue-600">{metrics.skill_competency.total_unique_skills}개</p>
+                  <p className="text-2xl font-bold text-blue-600">{metrics.skill_competency?.total_unique_skills || 0}개</p>
                   <p className="text-xs text-gray-500 mt-1">전체 보유</p>
                 </div>
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-700 mb-2">희소 기술 (3명 이하)</p>
                 <div className="flex flex-wrap gap-2">
-                  {metrics.skill_competency.rare_skills.slice(0, 5).map((skill, idx) => (
+                  {(metrics.skill_competency?.rare_skills || []).slice(0, 5).map((skill, idx) => (
                     <Badge key={idx} variant="outline" className="text-xs border-purple-200 text-purple-700">{skill.name} ({skill.count})</Badge>
                   ))}
                 </div>
@@ -223,16 +223,16 @@ export function Dashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
                   <p className="text-xs text-gray-600 mb-1">평균 경력</p>
-                  <p className="text-2xl font-bold text-green-600">{metrics.career_growth.average_years}년</p>
+                  <p className="text-2xl font-bold text-green-600">{metrics.career_growth?.average_years || 0}년</p>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl">
                   <p className="text-xs text-gray-600 mb-1">시니어 비율</p>
-                  <p className="text-2xl font-bold text-blue-600">{metrics.career_growth.senior_ratio}%</p>
+                  <p className="text-2xl font-bold text-blue-600">{metrics.career_growth?.senior_ratio || 0}%</p>
                 </div>
               </div>
               <div className="p-4 bg-gray-50 rounded-xl">
                 <p className="text-xs text-gray-600 mb-1">시니어 인력 (10년 이상)</p>
-                <p className="text-xl font-bold text-gray-900">{metrics.career_growth.senior_count}명</p>
+                <p className="text-xl font-bold text-gray-900">{metrics.career_growth?.senior_count || 0}명</p>
               </div>
             </CardContent>
           </Card>
@@ -248,20 +248,24 @@ export function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 flex-1 overflow-auto">
-              <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl">
-                <p className="text-xs text-gray-600 mb-1">평균 프로젝트 수</p>
-                <p className="text-2xl font-bold text-indigo-600">{metrics.project_experience.average_projects}개</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="p-3 bg-yellow-50 rounded-lg text-center">
-                  <p className="text-xs text-gray-600 mb-1">미참여</p>
-                  <p className="text-lg font-bold text-yellow-600">{metrics.project_experience.no_experience_count}</p>
-                </div>
-                <div className="p-3 bg-blue-50 rounded-lg text-center">
-                  <p className="text-xs text-gray-600 mb-1">리더 경험</p>
-                  <p className="text-lg font-bold text-blue-600">{metrics.project_experience.leader_experience_count}</p>
-                </div>
-              </div>
+              {metrics.project_experience && (
+                <>
+                  <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl">
+                    <p className="text-xs text-gray-600 mb-1">평균 프로젝트 수</p>
+                    <p className="text-2xl font-bold text-indigo-600">{metrics.project_experience.average_projects}개</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-3 bg-yellow-50 rounded-lg text-center">
+                      <p className="text-xs text-gray-600 mb-1">미참여</p>
+                      <p className="text-lg font-bold text-yellow-600">{metrics.project_experience.no_experience_count}</p>
+                    </div>
+                    <div className="p-3 bg-blue-50 rounded-lg text-center">
+                      <p className="text-xs text-gray-600 mb-1">리더 경험</p>
+                      <p className="text-lg font-bold text-blue-600">{metrics.project_experience.leader_experience_count}</p>
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </motion.div>

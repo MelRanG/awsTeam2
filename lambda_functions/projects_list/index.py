@@ -107,10 +107,19 @@ def fetch_all_projects() -> List[Dict[str, Any]]:
                     if isinstance(skills, list):
                         required_skills.extend([str(skill) for skill in skills])
             
-            # assigned_members 처리
+            # team_members 처리 (프로젝트 투입 시 저장되는 필드)
+            team_members = item.get('team_members', [])
+            if not isinstance(team_members, list):
+                team_members = []
+            
+            # assigned_members는 하위 호환성을 위해 유지
             assigned_members = item.get('assigned_members', [])
             if not isinstance(assigned_members, list):
                 assigned_members = []
+            
+            # team_members가 있으면 우선 사용
+            if team_members:
+                assigned_members = team_members
             
             # required_members 처리 (문자열일 수 있음)
             required_members = item.get('required_members', 5)

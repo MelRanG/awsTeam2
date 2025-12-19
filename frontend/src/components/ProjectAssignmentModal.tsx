@@ -3,7 +3,7 @@
  * Requirements: 2.5 - 프로젝트 배정 기능
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, AlertCircle, CheckCircle, Loader2, Calendar, Users, Percent } from 'lucide-react';
 import { Button } from './ui/button';
@@ -46,9 +46,16 @@ export function ProjectAssignmentModal({
   // 투입 정보 상태
   const [role, setRole] = useState('Developer');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(projectEndDate || '');
+  const [endDate, setEndDate] = useState('');
   const [allocationRate, setAllocationRate] = useState(100);
   const [reason, setReason] = useState('');
+
+  // 프로젝트 종료일이 변경되면 종료일 업데이트
+  useEffect(() => {
+    if (projectEndDate) {
+      setEndDate(projectEndDate);
+    }
+  }, [projectEndDate]);
 
   const handleConfirm = async () => {
     // 입력 검증
@@ -104,36 +111,37 @@ export function ProjectAssignmentModal({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-md"
+          className="w-full max-h-[85vh] overflow-hidden"
+          style={{ maxWidth: '400px' }}
         >
-          <Card className="border-0 shadow-2xl">
-            <CardHeader className="relative">
+          <Card className="border-0 shadow-2xl flex flex-col max-h-[85vh]">
+            <CardHeader className="relative flex-shrink-0 pb-3">
               <button
                 onClick={onClose}
                 className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <CheckCircle className="w-5 h-5 text-blue-600" />
                 프로젝트 배정 확인
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 overflow-y-auto flex-1 py-3">
               {/* 배정 정보 */}
-              <div className="space-y-3">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">직원</p>
-                  <p className="font-semibold text-gray-900">{employeeName}</p>
+              <div className="space-y-2">
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <p className="text-xs text-gray-600 mb-0.5">직원</p>
+                  <p className="font-semibold text-gray-900 text-sm">{employeeName}</p>
                 </div>
-                <div className="p-4 bg-indigo-50 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">프로젝트</p>
-                  <p className="font-semibold text-gray-900">{projectName}</p>
+                <div className="p-3 bg-indigo-50 rounded-lg">
+                  <p className="text-xs text-gray-600 mb-0.5">프로젝트</p>
+                  <p className="font-semibold text-gray-900 text-sm">{projectName}</p>
                 </div>
               </div>
 
               {/* 투입 역할 선택 */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-gray-600" />
                   투입 역할

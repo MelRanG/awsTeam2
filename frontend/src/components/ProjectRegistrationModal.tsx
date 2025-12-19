@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
 interface ProjectRegistrationModalProps {
   isOpen: boolean;
@@ -152,42 +152,19 @@ export function ProjectRegistrationModal({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* 배경 오버레이 */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={handleClose}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-          />
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent 
+        className="!max-w-3xl !h-[80vh] !overflow-hidden !flex !flex-col !p-0 !grid-cols-1"
+        style={{ display: 'flex', flexDirection: 'column', height: '80vh', maxHeight: '80vh' }}
+      >
+        <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
+          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            신규 프로젝트 등록
+          </DialogTitle>
+        </DialogHeader>
 
-          {/* 모달 */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          >
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              {/* 헤더 */}
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  신규 프로젝트 등록
-                </h2>
-                <button
-                  onClick={handleClose}
-                  disabled={isSubmitting}
-                  className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              {/* 폼 */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <form id="project-form" onSubmit={handleSubmit} className="space-y-6">
                 {/* 프로젝트명 */}
                 <div>
                   <Label htmlFor="project_name" className="text-gray-700">
@@ -411,9 +388,7 @@ export function ProjectRegistrationModal({
                 </div>
               </form>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          </DialogContent>
+        </Dialog>
   );
 }

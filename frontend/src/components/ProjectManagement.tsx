@@ -16,6 +16,9 @@ interface TeamMember {
   end_date?: string;
   allocation_rate?: number;
   assigned_date?: string;
+  name?: string;
+  position?: string;
+  experience_years?: number;
 }
 
 interface Project {
@@ -42,6 +45,29 @@ export function ProjectManagement({ onNavigateToRecommendation }: ProjectManagem
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [employeesMap, setEmployeesMap] = useState<Map<string, any>>(new Map());
+
+  // 직원 데이터 가져오기
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const response = await api.getEmployees();
+        const empMap = new Map();
+        response.employees.forEach((emp: any) => {
+          const userId = emp.user_id || emp.employee_id;
+          empMap.set(userId, {
+            name: emp.basic_info?.name || emp.name,
+            position: emp.basic_info?.role || emp.position,
+            experience_years: emp.basic_info?.years_of_experience || emp.experience_years,
+          });
+        });
+        setEmployeesMap(empMap);
+      } catch (err) {
+        console.error('직원 데이터 로드 실패:', err);
+      }
+    };
+    fetchEmployees();
+  }, []);
 
   // DB에서 프로젝트 목록 가져오기
   useEffect(() => {
@@ -324,22 +350,35 @@ export function ProjectManagement({ onNavigateToRecommendation }: ProjectManagem
                     
                     {/* 배정된 팀 멤버 표시 */}
                     {project.teamMembers && project.teamMembers.length > 0 && (
-                      <div className="mt-3 space-y-1">
-                        {project.teamMembers.slice(0, 3).map((member, idx) => (
-                          <div key={idx} className="flex items-center gap-2 text-xs">
-                            <Badge variant="secondary" className="text-xs">
-                              {member.role}
-                            </Badge>
-                            <span className="text-gray-600">
-                              {member.allocation_rate}% 투입
-                            </span>
-                          </div>
-                        ))}
-                        {project.teamMembers.length > 3 && (
-                          <p className="text-xs text-gray-500">
-                            외 {project.teamMembers.length - 3}명
-                          </p>
-                        )}
+                      <div className="mt-3 space-y-1.5">
+                        {project.teamMembers.map((member, idx) => {
+                          const empData = employeesMap.get(member.employee_id);
+                          return (
+                            <div key={idx} className="flex items-center justify-between text-xs bg-gray-50 rounded-lg p-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium text-gray-900">
+                                  {empData?.name || member.employee_id}
+                                </span>
+                                <Badge variant="secondary" className="text-xs">
+                                  {empData?.position || '직책'}
+                                </Badge>
+                                {empData?.experience_years && (
+                                  <span className="text-gray-500">
+                                    {empData.experience_years}년
+                                  </span>
+                                )}
+                                {member.role && (
+                                  <Badge variant="outline" className="text-xs border-blue-200 text-blue-700">
+                                    {member.role}
+                                  </Badge>
+                                )}
+                              </div>
+                              <span className="text-gray-600 whitespace-nowrap">
+                                {member.allocation_rate}% 투입
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

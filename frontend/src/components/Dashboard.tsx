@@ -268,61 +268,6 @@ export function Dashboard() {
         </motion.div>
       </div>
 
-      {/* 액션 필요 항목 */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.7 }}
-      >
-        <Card className="bg-gradient-to-br from-orange-50 to-red-50 border-orange-200 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-900">
-              <Bell className="w-5 h-5" />
-              액션 필요 항목
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="p-4 bg-white rounded-xl border border-orange-200"
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <Clock className="w-5 h-5 text-orange-600" />
-                  <p className="text-sm font-semibold text-gray-700">장기 대기 인력</p>
-                </div>
-                <p className="text-2xl font-bold text-orange-600">{metrics.action_required.long_waiting_employees}명</p>
-                <p className="text-xs text-gray-600 mt-1">프로젝트 미배정</p>
-              </motion.div>
-              
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="p-4 bg-white rounded-xl border border-red-200"
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <FileText className="w-5 h-5 text-red-600" />
-                  <p className="text-sm font-semibold text-gray-700">평가 지연 건</p>
-                </div>
-                <p className="text-2xl font-bold text-red-600">{metrics.action_required.delayed_evaluations}건</p>
-                <p className="text-xs text-gray-600 mt-1">7일 이상 대기</p>
-              </motion.div>
-              
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="p-4 bg-white rounded-xl border border-yellow-200"
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <AlertCircle className="w-5 h-5 text-yellow-600" />
-                  <p className="text-sm font-semibold text-gray-700">검증 필요</p>
-                </div>
-                <p className="text-2xl font-bold text-yellow-600">{metrics.action_required.verification_needed}건</p>
-                <p className="text-xs text-gray-600 mt-1">이력서 검증 미완료</p>
-              </motion.div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
       {/* 인력현황상세, 프로젝트현황 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {/* 인력 현황 상세 */}

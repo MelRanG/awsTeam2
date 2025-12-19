@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, UserPlus, Upload } from 'lucide-react';
+import { Search, Filter, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
@@ -8,7 +8,6 @@ import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { api, Employee } from '../config/api';
 import { EmployeeRegistrationModal } from './EmployeeRegistrationModal';
-import { ResumeUploadModal } from './ResumeUploadModal';
 import { toast } from 'sonner';
 
 interface Personnel {
@@ -20,6 +19,14 @@ interface Personnel {
   experience: number;
   currentProject: string | null;
   availability: 'available' | 'busy' | 'pending';
+  projectHistory?: Array<{
+    project_name: string;
+    period?: string;
+    duration?: string;
+    role?: string;
+    description?: string;
+    main_tasks?: string[];
+  }>;
 }
 
 export function PersonnelManagement() {
@@ -31,7 +38,6 @@ export function PersonnelManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isResumeUploadOpen, setIsResumeUploadOpen] = useState(false);
 
   // DB에서 직원 목록 가져오기
   const fetchEmployees = async () => {
@@ -49,6 +55,7 @@ export function PersonnelManagement() {
         experience: emp.basic_info.years_of_experience,
         currentProject: null, // 기본값 (DB에 없는 경우)
         availability: 'available' as const, // 기본값
+        projectHistory: emp.work_experience || [], // 프로젝트 이력 추가
       }));
       
       setAllPersonnel(transformedData);
@@ -135,16 +142,6 @@ export function PersonnelManagement() {
           <p className="text-gray-600">전체 인력 정보를 확인하고 관리하세요 (페이지 {currentPage}/{totalPages} - 전체 {getFilteredPersonnel().length}명)</p>
         </div>
         <div className="flex gap-3">
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button 
-              onClick={() => setIsResumeUploadOpen(true)}
-              variant="outline"
-              className="gap-2 border-blue-200 text-blue-600 hover:bg-blue-50"
-            >
-              <Upload className="w-4 h-4" />
-              이력서 업로드
-            </Button>
-          </motion.div>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button 
               onClick={() => setIsModalOpen(true)}
@@ -331,14 +328,38 @@ export function PersonnelManagement() {
                 <div>
                   <p className="text-sm text-gray-600 mb-3">프로젝트 참여 이력</p>
                   <div className="space-y-2">
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-gray-900 mb-1">금융 플랫폼 구축</p>
-                      <p className="text-sm text-gray-600">2024.01 - 2024.08 (8개월)</p>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-gray-900 mb-1">전자상거래 시스템 개선</p>
-                      <p className="text-sm text-gray-600">2023.05 - 2023.12 (8개월)</p>
-                    </div>
+                    {person.projectHistory && person.projectHistory.length > 0 ? (
+                      person.projectHistory.slice(0, 5).map((project, idx) => (
+                        <div key={idx} className="p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-start justify-between mb-1">
+                            <p className="text-gray-900 font-medium">{project.project_name}</p>
+                            {project.role && (
+                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                                {project.role}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600">{project.period || project.duration || '기간 정보 없음'}</p>
+                          {project.description && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{project.description}</p>
+                          )}
+                          {project.main_tasks && project.main_tasks.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-xs text-gray-600">주요 업무:</p>
+                              <ul className="text-xs text-gray-500 list-disc list-inside">
+                                {project.main_tasks.slice(0, 2).map((task, taskIdx) => (
+                                  <li key={taskIdx} className="truncate">{task}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-3 bg-gray-50 rounded-lg text-center">
+                        <p className="text-sm text-gray-500">프로젝트 이력이 없습니다</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -434,20 +455,6 @@ export function PersonnelManagement() {
             // 에러는 모달 컴포넌트에서 처리됨
             throw error;
           }
-        }}
-      />
-
-      {/* 이력서 업로드 모달 */}
-      <ResumeUploadModal
-        isOpen={isResumeUploadOpen}
-        onClose={() => setIsResumeUploadOpen(false)}
-        onUploadSuccess={(fileKey) => {
-          console.log('이력서 업로드 완료:', fileKey);
-          toast.success('이력서 업로드 완료!', {
-            description: '이력서 파싱이 시작되었습니다. 잠시 후 평가 현황에서 확인하실 수 있습니다.',
-          });
-          // 직원 목록 새로고침
-          fetchEmployees();
         }}
       />
     </div>

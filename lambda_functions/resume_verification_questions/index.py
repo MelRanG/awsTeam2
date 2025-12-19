@@ -7,6 +7,7 @@ import boto3
 from datetime import datetime
 
 bedrock = boto3.client('bedrock-runtime', region_name='us-east-2')
+dynamodb = boto3.resource('dynamodb', region_name='us-east-2')
 
 VERIFICATION_PROMPT = """# Role (역할)
 당신은 20년 차 베테랑 '테크니컬 리크루터'이자 '이력서 검증 감사관(Auditor)'입니다.
@@ -77,6 +78,7 @@ def lambda_handler(event, context):
         # 요청 본문 파싱
         body = json.loads(event.get('body', '{}'))
         resume_data = body.get('resume_data')
+        candidate_id = body.get('candidate_id')  # 대기자 ID (선택적)
         
         if not resume_data:
             return {
@@ -87,6 +89,8 @@ def lambda_handler(event, context):
                     'message': 'resume_data가 필요합니다'
                 }, ensure_ascii=False)
             }
+        
+        print(f"candidate_id: {candidate_id}")
         
         print(f"이력서 검증 질문 생성 시작")
         
@@ -146,14 +150,33 @@ def lambda_handler(event, context):
                 ]
             }
         
-        print(f"검증 질문 {len(questions_data.get('verification_questions', []))}개 생성 완료")
+        questions = questions_data.get('verification_questions', [])
+        print(f"검증 질문 {len(questions)}개 생성 완료")
+        
+        # candidate_id가 있으면 DynamoDB 업데이트
+        if candidate_id:
+            try:
+                table = dynamodb.Table('PendingCandidates')
+                table.update_item(
+                    Key={'candidate_id': candidate_id},
+                    UpdateExpression='SET verification_questions = :questions, questions_generated_at = :timestamp',
+                    ExpressionAttributeValues={
+                        ':questions': questions,
+                        ':timestamp': datetime.now().isoformat()
+                    }
+                )
+                print(f"DynamoDB 업데이트 완료 - candidate_id: {candidate_id}")
+            except Exception as db_error:
+                print(f"DynamoDB 업데이트 실패: {str(db_error)}")
+                # DynamoDB 업데이트 실패해도 질문은 반환
         
         return {
             'statusCode': 200,
             'headers': headers,
             'body': json.dumps({
-                'questions': questions_data.get('verification_questions', []),
-                'generated_at': datetime.now().isoformat()
+                'questions': questions,
+                'generated_at': datetime.now().isoformat(),
+                'updated_candidate': candidate_id is not None
             }, ensure_ascii=False)
         }
         

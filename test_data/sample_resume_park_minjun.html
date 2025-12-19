@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이력서 - 박민준</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            color: #2980b9;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        
+        h3 {
+            color: #34495e;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .contact-info {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .skill-item {
+            display: inline-block;
+            background: #d6eaf8;
+            padding: 5px 15px;
+            margin: 5px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        
+        .project {
+            background: #ebf5fb;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .project-title {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        
+        .project-period {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        .certification {
+            background: #d5f4e6;
+            padding: 8px 15px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>박민준 (Park Min-jun)</h1>
+        <div class="contact-info">
+            <p>Full-stack Developer | 경력 5년</p>
+            <p>📧 minjun.park@techmail.com | 📱 010-1234-5678</p>
+            <p>🔗 GitHub: github.com/minjun-park | Portfolio: minjun-dev.com</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>자기소개</h2>
+        <p>
+            사용자 중심의 서비스를 만드는 것에 열정을 가진 풀스택 개발자입니다. 
+            프론트엔드와 백엔드를 아우르는 폭넓은 기술 스택을 보유하고 있으며, 
+            특히 React와 Node.js 생태계에 깊은 이해를 가지고 있습니다. 
+            빠르게 변화하는 기술 트렌드를 적극적으로 학습하고 실무에 적용하며, 
+            팀원들과의 원활한 커뮤니케이션을 통해 프로젝트의 성공적인 완수에 기여합니다.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>핵심 기술</h2>
+        <div>
+            <span class="skill-item">React (5년, Advanced)</span>
+            <span class="skill-item">TypeScript (4년, Advanced)</span>
+            <span class="skill-item">Node.js (5년, Advanced)</span>
+            <span class="skill-item">Next.js (3년, Intermediate)</span>
+            <span class="skill-item">Python (3년, Intermediate)</span>
+            <span class="skill-item">AWS (4년, Intermediate)</span>
+            <span class="skill-item">Docker</span>
+            <span class="skill-item">PostgreSQL</span>
+            <span class="skill-item">MongoDB</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>프로젝트 경험</h2>
+        
+        <div class="project">
+            <div class="project-title">글로벌 SaaS 기업 협업 툴 플랫폼 개발</div>
+            <div class="project-period">2022년 7월 ~ 2024년 11월 | Senior Full-stack Developer</div>
+            
+            <h3>주요 업무</h3>
+            <ul>
+                <li>Next.js 14 App Router를 활용한 서버 사이드 렌더링(SSR) 구현</li>
+                <li>실시간 협업 기능을 위한 WebSocket 서버 구축 (Socket.io)</li>
+                <li>Node.js + Express 기반 RESTful API 설계 및 개발</li>
+                <li>PostgreSQL 데이터베이스 스키마 설계 및 쿼리 최적화</li>
+                <li>AWS ECS를 활용한 컨테이너 기반 배포 환경 구축</li>
+                <li>Redis를 활용한 세션 관리 및 캐싱 시스템 구현</li>
+            </ul>
+            
+            <h3>성과</h3>
+            <p>
+                SSR 도입으로 초기 페이지 로딩 속도를 3.5초에서 1.2초로 65% 개선하여 사용자 이탈률 25% 감소. 
+                실시간 협업 기능으로 MAU(월간 활성 사용자) 40% 증가에 기여.
+            </p>
+        </div>
+
+        <div class="project">
+            <div class="project-title">헬스케어 스타트업 환자 관리 시스템</div>
+            <div class="project-period">2021년 3월 ~ 2022년 6월 | Full-stack Developer</div>
+            
+            <h3>주요 업무</h3>
+            <ul>
+                <li>React + TypeScript 기반 환자 관리 대시보드 개발</li>
+                <li>Python FastAPI를 활용한 백엔드 API 서버 구축</li>
+                <li>MongoDB를 활용한 환자 데이터 저장 및 조회 시스템 개발</li>
+                <li>Chart.js를 활용한 환자 건강 데이터 시각화</li>
+                <li>JWT 기반 인증 시스템 구현</li>
+                <li>Docker Compose를 활용한 로컬 개발 환경 구축</li>
+            </ul>
+            
+            <h3>성과</h3>
+            <p>
+                직관적인 UI/UX 설계로 의료진의 환자 관리 시간을 평균 30분에서 15분으로 50% 단축. 
+                FastAPI의 비동기 처리로 API 응답 속도 40% 개선.
+            </p>
+        </div>
+
+        <div class="project">
+            <div class="project-title">교육 플랫폼 온라인 강의 시스템</div>
+            <div class="project-period">2020년 1월 ~ 2021년 2월 | Frontend Developer</div>
+            
+            <h3>주요 업무</h3>
+            <ul>
+                <li>React + Redux를 활용한 온라인 강의 플레이어 개발</li>
+                <li>Video.js를 커스터마이징하여 강의 재생 기능 구현</li>
+                <li>반응형 웹 디자인 구현 (모바일, 태블릿, 데스크톱 대응)</li>
+                <li>Webpack 번들 최적화로 초기 로딩 속도 개선</li>
+                <li>Jest + React Testing Library를 활용한 단위 테스트 작성</li>
+            </ul>
+            
+            <h3>성과</h3>
+            <p>
+                코드 스플리팅 및 레이지 로딩 적용으로 번들 크기 40% 감소. 
+                모바일 사용자 비율이 35%에서 55%로 증가하며 전체 수강생 수 30% 증가.
+            </p>
+        </div>
+
+        <div class="project">
+            <div class="project-title">이커머스 쇼핑몰 리뉴얼 프로젝트</div>
+            <div class="project-period">2019년 6월 ~ 2019년 12월 | Junior Frontend Developer</div>
+            
+            <h3>주요 업무</h3>
+            <ul>
+                <li>React 기반 상품 목록 및 상세 페이지 개발</li>
+                <li>장바구니 및 결제 프로세스 UI 구현</li>
+                <li>Axios를 활용한 API 통신 및 에러 핸들링</li>
+                <li>CSS-in-JS (Styled-components) 활용한 스타일링</li>
+            </ul>
+            
+            <h3>성과</h3>
+            <p>
+                사용자 친화적인 UI 개선으로 구매 전환율 12% 향상. 
+                반응형 디자인 적용으로 모바일 구매 비율 20% 증가.
+            </p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>학력</h2>
+        <p><strong>연세대학교 (Yonsei University)</strong></p>
+        <p>컴퓨터과학과 학사 (Computer Science, BS) | 2014년 - 2019년</p>
+        <p>학점: 3.8 / 4.3 (전공 4.0 / 4.3)</p>
+    </div>
+
+    <div class="section">
+        <h2>자격증</h2>
+        <div class="certification">AWS Certified Solutions Architect - Associate - 2023년 취득</div>
+        <div class="certification">정보처리기사 - 2019년 취득</div>
+    </div>
+
+    <div class="section">
+        <h2>기술 스택 상세</h2>
+        <h3>Frontend</h3>
+        <ul>
+            <li><strong>Languages:</strong> TypeScript, JavaScript, HTML5, CSS3</li>
+            <li><strong>Frameworks/Libraries:</strong> React, Next.js, Vue.js</li>
+            <li><strong>State Management:</strong> Redux, Zustand, Recoil</li>
+            <li><strong>Styling:</strong> Tailwind CSS, Styled-components, Sass</li>
+            <li><strong>Build Tools:</strong> Webpack, Vite, Turbopack</li>
+        </ul>
+        
+        <h3>Backend</h3>
+        <ul>
+            <li><strong>Languages:</strong> Node.js, Python, TypeScript</li>
+            <li><strong>Frameworks:</strong> Express, NestJS, FastAPI</li>
+            <li><strong>Database:</strong> PostgreSQL, MySQL, MongoDB, Redis</li>
+            <li><strong>ORM:</strong> Prisma, TypeORM, Sequelize</li>
+            <li><strong>API:</strong> RESTful API, GraphQL</li>
+        </ul>
+        
+        <h3>DevOps & Tools</h3>
+        <ul>
+            <li><strong>Cloud:</strong> AWS (EC2, S3, RDS, Lambda, ECS, CloudFront)</li>
+            <li><strong>Container:</strong> Docker, Docker Compose</li>
+            <li><strong>CI/CD:</strong> GitHub Actions, GitLab CI</li>
+            <li><strong>Monitoring:</strong> Sentry, CloudWatch</li>
+            <li><strong>Version Control:</strong> Git, GitHub, GitLab</li>
+        </ul>
+        
+        <h3>Testing</h3>
+        <ul>
+            <li>Jest, React Testing Library</li>
+            <li>Cypress (E2E Testing)</li>
+            <li>Postman, Insomnia</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>개인 프로젝트 & 오픈소스</h2>
+        <h3>개인 프로젝트</h3>
+        <ul>
+            <li><strong>개발자 포트폴리오 빌더:</strong> Next.js + Tailwind CSS로 개발한 노코드 포트폴리오 생성 도구 (GitHub Stars 200+)</li>
+            <li><strong>실시간 채팅 애플리케이션:</strong> React + Socket.io + Node.js로 구현한 웹 채팅 앱</li>
+            <li><strong>날씨 대시보드:</strong> React + OpenWeather API를 활용한 실시간 날씨 정보 제공 서비스</li>
+        </ul>
+        
+        <h3>오픈소스 기여</h3>
+        <ul>
+            <li><strong>React:</strong> 문서 번역 및 예제 코드 개선 (3건의 PR 머지)</li>
+            <li><strong>Next.js:</strong> 버그 리포팅 및 재현 케이스 작성</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>언어</h2>
+        <ul>
+            <li><strong>한국어:</strong> 모국어</li>
+            <li><strong>영어:</strong> 중급 (기술 문서 읽기 가능, 간단한 의사소통 가능)</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>기타 활동</h2>
+        <ul>
+            <li><strong>기술 블로그 운영:</strong> Velog에서 React, TypeScript 관련 기술 포스팅 (누적 조회수 50,000+)</li>
+            <li><strong>스터디 참여:</strong> 프론트엔드 개발자 스터디 그룹 정기 참여 (2021-현재)</li>
+            <li><strong>멘토링:</strong> 부트캠프 수강생 대상 React 멘토링 (2023)</li>
+        </ul>
+    </div>
+</body>
+</html>

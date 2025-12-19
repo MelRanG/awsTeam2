@@ -588,7 +588,7 @@ export function PersonnelEvaluation() {
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           className="p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer"
-                          onClick={() => {
+                          onClick={async () => {
                             // 카드 또는 버튼 클릭 시 평가 데이터 표시
                             if (candidate.evaluation_data) {
                               setEvaluationResult(candidate.evaluation_data);
@@ -596,13 +596,31 @@ export function PersonnelEvaluation() {
                               setIsFromResume(false);
                               setSearchMode('pending');
                               
-                              // 검증 질문 저장
-                              if (candidate.verification_questions && candidate.verification_questions.length > 0) {
-                                setVerificationQuestions(candidate.verification_questions);
-                                console.log('검증 질문 로드:', candidate.verification_questions.length, '개');
-                              } else {
-                                setVerificationQuestions([]);
-                                console.log('검증 질문 없음');
+                              // 최신 대기자 정보 다시 불러오기 (검증 질문 업데이트 확인)
+                              try {
+                                const response = await fetch(`${API_BASE_URL}/pending-candidates`);
+                                if (response.ok) {
+                                  const data = await response.json();
+                                  const updatedCandidate = data.candidates.find(
+                                    (c: any) => c.candidate_id === candidate.candidate_id
+                                  );
+                                  
+                                  if (updatedCandidate && updatedCandidate.verification_questions) {
+                                    setVerificationQuestions(updatedCandidate.verification_questions);
+                                    console.log('검증 질문 로드:', updatedCandidate.verification_questions.length, '개');
+                                  } else {
+                                    setVerificationQuestions([]);
+                                    console.log('검증 질문 아직 생성 중...');
+                                  }
+                                }
+                              } catch (error) {
+                                console.error('최신 데이터 로드 실패:', error);
+                                // 실패해도 기존 데이터 사용
+                                if (candidate.verification_questions && candidate.verification_questions.length > 0) {
+                                  setVerificationQuestions(candidate.verification_questions);
+                                } else {
+                                  setVerificationQuestions([]);
+                                }
                               }
                             } else {
                               toast.error('평가 데이터를 찾을 수 없습니다');
@@ -987,41 +1005,10 @@ export function PersonnelEvaluation() {
                         setSaving(true);
                         
                         if (isFromResume) {
-                          // 이력서 업로드 후 승인: 검증 질문 생성 후 대기자로 저장
-                          toast.info('검증 질문 생성 중...');
+                          // 이력서 업로드 후 승인: 대기자로 저장 후 백그라운드에서 검증 질문 생성
+                          toast.info('대기자 명단에 등록 중...');
                           
-                          // 1. 검증 질문 생성
-                          const questionsResponse = await fetch(
-                            `${API_BASE_URL}/resume/verification-questions`,
-                            {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify({
-                                resume_data: {
-                                  name: evaluationResult.employee_name,
-                                  experience_years: evaluationResult.experience_years,
-                                  skills: evaluationResult.skills,
-                                  project_history: evaluationResult.project_history,
-                                  strengths: evaluationResult.strengths,
-                                  weaknesses: evaluationResult.weaknesses,
-                                  analysis: evaluationResult.analysis,
-                                }
-                              }),
-                            }
-                          );
-
-                          let verificationQuestions = [];
-                          if (questionsResponse.ok) {
-                            const questionsData = await questionsResponse.json();
-                            verificationQuestions = questionsData.questions || [];
-                            console.log('검증 질문 생성 완료:', verificationQuestions.length, '개');
-                          } else {
-                            console.error('검증 질문 생성 실패');
-                          }
-                          
-                          // 2. 대기자로 저장 (평가 데이터 + 검증 질문)
+                          // 1. 대기자로 저장 (검증 질문 없이)
                           const response = await fetch(
                             `${API_BASE_URL}/pending-candidates`,
                             {
@@ -1041,7 +1028,7 @@ export function PersonnelEvaluation() {
                                 })),
                                 status: 'pending',
                                 evaluation_data: evaluationResult,
-                                verification_questions: verificationQuestions,
+                                verification_questions: [], // 빈 배열로 시작
                               }),
                             }
                           );
@@ -1050,7 +1037,46 @@ export function PersonnelEvaluation() {
                             throw new Error('대기자 등록 실패');
                           }
 
-                          toast.success(`대기자 명단에 추가되었습니다! (검증 질문 ${verificationQuestions.length}개 생성)`);
+                          const candidateData = await response.json();
+                          const candidateId = candidateData.id || candidateData.data?.candidate_id || candidateData.candidate_id;
+                          console.log('대기자 등록 완료, candidate_id:', candidateId);
+                          console.log('응답 데이터:', candidateData);
+
+                          toast.success('대기자 명단에 추가되었습니다!');
+                          
+                          // 2. 백그라운드에서 검증 질문 생성 (응답 기다리지 않음)
+                          toast.info('검증 질문 생성 중... (백그라운드)');
+                          
+                          // fetch를 호출하되 await 하지 않음 (fire and forget)
+                          fetch(
+                            `${API_BASE_URL}/resume/verification-questions`,
+                            {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                candidate_id: candidateId,
+                                resume_data: {
+                                  name: evaluationResult.employee_name,
+                                  experience_years: evaluationResult.experience_years,
+                                  skills: evaluationResult.skills,
+                                  project_history: evaluationResult.project_history,
+                                  strengths: evaluationResult.strengths,
+                                  weaknesses: evaluationResult.weaknesses,
+                                  analysis: evaluationResult.analysis,
+                                }
+                              }),
+                            }
+                          ).then(res => {
+                            if (res.ok) {
+                              console.log('검증 질문 생성 완료 (백그라운드)');
+                            } else {
+                              console.error('검증 질문 생성 실패:', res.status);
+                            }
+                          }).catch(err => {
+                            console.error('검증 질문 생성 오류:', err);
+                          });
                         } else {
                           // 대기자 명단에서 승인: PendingCandidates에서 삭제 후 Employees에 추가
                           const candidateId = selectedEmployee.candidate_id;
